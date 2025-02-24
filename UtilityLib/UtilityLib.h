@@ -43,6 +43,7 @@
 #include <ws2tcpip.h>
 #include <thread>
 #include <mutex>
+#include <queue>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -995,11 +996,11 @@ namespace UtilityLib
             int32_t Send(const uint8_t* buffer) const
             {
                 const char* buf = reinterpret_cast<const char*>(buffer);
-                return send(Sock, buf, strlen(buf), 0);
+                return send(Sock, buf, static_cast<int32_t>(strlen(buf)), 0);
             }
             int32_t Send(const char* buffer) const
             {
-                return send(Sock, buffer, strlen(buffer), 0);
+                return send(Sock, buffer, static_cast<int32_t>(strlen(buffer)), 0);
             }
 
             int32_t Receive(std::string& recvbuf) const
@@ -1013,7 +1014,7 @@ namespace UtilityLib
                 {
                     iResult = recv(Sock, buf, bufSize, 0);
 
-                    if (iResult >= bufSize)
+                    if (iResult >= static_cast<int32_t>(bufSize))
                     {
                         buf[bufSize] = '\0';
                         recvbuf += buf;
@@ -1027,6 +1028,11 @@ namespace UtilityLib
                     }
                     else if (iResult < 0)
                     {
+                        auto x = WSAGetLastError();
+                        if (x == WSAEWOULDBLOCK)
+                        {
+                            return bytesRecv;
+                        }
                         return 0;
                     }
                 } while (iResult > 0);
@@ -1098,10 +1104,12 @@ namespace UtilityLib
             }
         };
 
-        class AsyncBase
+        class AsyncSelectBase
         {
         public:
             HWND Hwnd;
+
+            AsyncSelectBase() : Hwnd(nullptr) {}
 
             virtual void MessageLoop() = 0;
             virtual bool RegisterMessageWindowClass(const std::string& name) = 0;
@@ -1111,17 +1119,17 @@ namespace UtilityLib
 
             static LRESULT CALLBACK ThreadWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
-                AsyncBase* thisPtr = NULL;
+                AsyncSelectBase* thisPtr = NULL;
                 if (msg == WM_NCCREATE)
                 {
                     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
-                    thisPtr = reinterpret_cast<AsyncBase*>(pcs->lpCreateParams);
+                    thisPtr = reinterpret_cast<AsyncSelectBase*>(pcs->lpCreateParams);
                     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(thisPtr));
                     thisPtr->Hwnd = hwnd;
                 }
                 else
                 {
-                    thisPtr = reinterpret_cast<AsyncBase*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+                    thisPtr = reinterpret_cast<AsyncSelectBase*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
                 }
 
                 if (thisPtr)
@@ -1135,16 +1143,29 @@ namespace UtilityLib
             }
         };
 
-        class Client : public Socket, public AsyncBase
+        class ClientAsnycSelectCls : public Socket, public AsyncSelectBase
         {
         public:
             std::string RecvbufString;
             std::mutex RecvbufMutex;
 
-            Client() : Socket() {}
-            Client(const addrinfo& hints) : Socket(hints) {}
-            Client(const addrinfo& hints, const std::string& nodeName, const std::string& serviceName) : Socket(hints, nodeName, serviceName) {}
+            ClientAsnycSelectCls() : 
+                Socket(), 
+                AsyncSelectBase()
+            {
+            }
+            ClientAsnycSelectCls(const addrinfo& hints) : 
+                Socket(hints), 
+                AsyncSelectBase() 
+            {
+            }
+            ClientAsnycSelectCls(const addrinfo& hints, const std::string& nodeName, const std::string& serviceName) : 
+                Socket(hints, nodeName, serviceName), 
+                AsyncSelectBase() 
+            {
+            }
 
+            // WSAAsyncSelect implementation
             void MessageLoop() override
             {
                 MSG msg;
@@ -1154,11 +1175,10 @@ namespace UtilityLib
                     DispatchMessage(&msg);
                 }
             }
-
             bool RegisterMessageWindowClass(const std::string& name) override
             {
                 WNDCLASS wc = { 0 };
-                wc.lpfnWndProc = UtilityLib::NetworkIO::AsyncBase::ThreadWndProc;
+                wc.lpfnWndProc = UtilityLib::NetworkIO::AsyncSelectBase::ThreadWndProc;
                 wc.hInstance = GetModuleHandle(NULL);
                 wc.lpszClassName = TEXT(name.c_str());
 
@@ -1259,6 +1279,140 @@ namespace UtilityLib
 
                 MessageLoop();
                 DestroyWindow(Hwnd);
+            }
+
+            // WSAEventSelect implementation
+        };
+
+        class EventSelectBase
+        {
+        public:
+            virtual void ThreadEntryPoint() = 0;
+            virtual void PushMessage(const std::string& msg) = 0;
+            virtual void Stop() = 0;
+        };
+
+        class ClientEventSelectCls : public Socket, public EventSelectBase
+        {
+        private:
+            WSAEVENT Event;
+            std::queue<std::string> MessageQueue;
+            std::mutex MessageMutex;
+            bool IsRunning;
+            std::string RecvbufString;
+            std::mutex RecvbufMutex;
+
+        public:
+            ClientEventSelectCls() : 
+                Socket(), 
+                Event(WSACreateEvent()), 
+                IsRunning(true) 
+            {
+            }
+            ClientEventSelectCls(const addrinfo& hints) : 
+                Socket(hints), 
+                Event(WSACreateEvent()), 
+                IsRunning(true)
+            {
+            }
+            ClientEventSelectCls(const addrinfo& hints, const std::string& nodeName, const std::string& serviceName) : 
+                Socket(hints, nodeName, serviceName), 
+                Event(WSACreateEvent()), 
+                IsRunning(true)
+            {
+            }
+
+            std::string GetRecvBuffer()
+            {
+                std::lock_guard<std::mutex> lock(RecvbufMutex);
+                return RecvbufString;
+            }
+
+            void Stop() override
+            {
+                IsRunning = false;
+            }
+            void PushMessage(const std::string& msg) override
+            {
+                std::lock_guard<std::mutex> lock(MessageMutex);
+                MessageQueue.push(msg);
+            }
+            void ThreadEntryPoint() override
+            {
+                if (!IsWSAStartupSuccessful || !IsConnected)
+                {
+                    std::cerr << "Cannot start thread: Socket not initialized or connected" << std::endl;
+                    return;
+                }
+
+                if (WSAEventSelect(GetSocket(), Event, FD_READ | FD_CLOSE) == SOCKET_ERROR)
+                {
+                    std::cerr << "WSAEventSelect failed: " << WSAGetLastError() << std::endl;
+                    return;
+                }
+
+                while (IsRunning)
+                {
+                    DWORD result = WSAWaitForMultipleEvents(1, &Event, FALSE, 100, FALSE);
+                    if (result == WSA_WAIT_TIMEOUT)
+                    {
+                        CheckSendQueue();
+                    }
+                    else if (result == WSA_WAIT_FAILED)
+                    {
+                        std::cerr << "WSAWaitForMultipleEvents failed: " << WSAGetLastError() << std::endl;
+                        break;
+                    }
+
+                    WSANETWORKEVENTS netEvents;
+                    if (WSAEnumNetworkEvents(GetSocket(), Event, &netEvents) == SOCKET_ERROR)
+                    {
+                        std::cerr << "WSAEnumNetworkEvents failed: " << WSAGetLastError() << std::endl;
+                        break;
+                    }
+
+                    if (netEvents.lNetworkEvents & FD_READ)
+                    {
+                        std::string recvbuf;
+                        int32_t recvBytes = Receive(recvbuf);
+                        if (recvBytes > 0)
+                        {
+                            std::lock_guard<std::mutex> lock(RecvbufMutex);
+                            RecvbufString = recvbuf;
+                            std::cout << "Received: " << RecvbufString << "\n";
+                        }
+                    }
+                    if (netEvents.lNetworkEvents & FD_CLOSE)
+                    {
+                        std::cout << "FD_CLOSE received" << std::endl;
+                        Disconnect();
+                        IsRunning = false;
+                    }
+
+                    CheckSendQueue();
+                }
+            }
+
+        private:
+            void CheckSendQueue()
+            {
+                std::lock_guard<std::mutex> lock(MessageMutex);
+                while (!MessageQueue.empty())
+                {
+                    std::string msg = MessageQueue.front();
+                    MessageQueue.pop();
+
+                    if (GetSocket() != INVALID_SOCKET)
+                    {
+                        int32_t bytesSent = Send(msg);
+                        if (bytesSent < 0)
+                        {
+                            std::cerr << "Error while sending: " << WSAGetLastError() << std::endl;
+                            Stop();
+                            return;
+                        }
+                    }
+                }
             }
         };
 

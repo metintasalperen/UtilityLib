@@ -80,5 +80,6 @@ int main() {
     closesocket(listenSock);
     WSACleanup();
     std::cout << "Server shutting down" << std::endl;
+    while (1);
     return 0;
 }
