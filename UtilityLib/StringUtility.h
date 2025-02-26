@@ -287,6 +287,18 @@ namespace UtilityLib
         // Returns:
         // std::vector<std::string>
         std::vector<std::string> DivideByLength(const std::string& str, size_t partLen);
+        // EncodeBase64()
+        // 
+        // Summary
+        // Encodes provided string to base 64
+        // 
+        // Arguments:
+        // std::string "in"  --- In
+        // 
+        // Returns:
+        // 
+        // std::string
+        std::string EncodeBase64(const std::string& in);
     };
 };
 

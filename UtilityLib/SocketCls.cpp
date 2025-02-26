@@ -252,7 +252,7 @@ namespace UtilityLib
                 return INT_MAX;
             }
         }
-        int SocketCls::Send(const uint8_t* buffer, size_t bufLen = 0)
+        int SocketCls::Send(const uint8_t* buffer, size_t bufLen)
         {
             std::string buf;
             if (bufLen == 0)
@@ -265,7 +265,7 @@ namespace UtilityLib
             }
             return Send(buf);
         }
-        int SocketCls::SendAll(const uint8_t* buffer, size_t bufLen = 0)
+        int SocketCls::SendAll(const uint8_t* buffer, size_t bufLen)
         {
             std::string buf;
 
