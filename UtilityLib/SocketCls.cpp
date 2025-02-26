@@ -2,7 +2,7 @@
 
 namespace UtilityLib
 {
-    namespace NetworkIO
+    namespace Network
     {
         SocketCls::SocketCls() :
             Sock(INVALID_SOCKET),
@@ -446,6 +446,5 @@ namespace UtilityLib
 
             return recvBytes;
         }
-
-};
+    };
 };

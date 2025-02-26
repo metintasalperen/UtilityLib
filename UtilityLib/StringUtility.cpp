@@ -418,6 +418,5 @@ namespace UtilityLib
             return parts;
 
         }
-
-    }
-}
+    };
+};

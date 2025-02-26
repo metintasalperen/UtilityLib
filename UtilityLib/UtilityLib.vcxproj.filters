@@ -13,33 +13,57 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\String">
+      <UniqueIdentifier>{4fbfedb1-a661-446c-a78e-71694b451727}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\File IO">
+      <UniqueIdentifier>{9509310d-7a8f-4198-9cd8-4e4b9e1fd022}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Network">
+      <UniqueIdentifier>{670dc4d7-503f-4214-b29e-8240c365f037}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\File IO">
+      <UniqueIdentifier>{9d132c99-0146-4e1e-87b3-c1314da28ae7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\String">
+      <UniqueIdentifier>{642b3f9c-a150-4743-bd7e-d4302ea1d155}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Network">
+      <UniqueIdentifier>{f0616b66-2fd7-45bd-ab13-298c9bd3abdb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UtilityLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StringUtility.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\String</Filter>
     </ClInclude>
     <ClInclude Include="FileIOUtility.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\File IO</Filter>
     </ClInclude>
     <ClInclude Include="SocketCls.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientAsyncSelectCls.h">
+      <Filter>Header Files\Network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StringUtility.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FileIOUtility.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\File IO</Filter>
+    </ClCompile>
+    <ClCompile Include="StringUtility.cpp">
+      <Filter>Source Files\String</Filter>
     </ClCompile>
     <ClCompile Include="SocketCls.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientAsyncSelectCls.cpp">
+      <Filter>Source Files\Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

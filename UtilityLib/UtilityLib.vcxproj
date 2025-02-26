@@ -127,12 +127,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ClientAsyncSelectCls.h" />
     <ClInclude Include="FileIOUtility.h" />
     <ClInclude Include="SocketCls.h" />
     <ClInclude Include="StringUtility.h" />
     <ClInclude Include="UtilityLib.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ClientAsyncSelectCls.cpp" />
     <ClCompile Include="FileIOUtility.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SocketCls.cpp" />

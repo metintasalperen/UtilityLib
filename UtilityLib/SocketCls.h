@@ -1,11 +1,10 @@
 #ifndef SOCKETCLS_H
 #define SOCKETCLS_H
 
-//#ifndef WIN32_LEAN_AND_MEAN
-//#define WIN32_LEAN_AND_MEAN
-//#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 
-//#include <Windows.h>
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 
@@ -13,15 +12,12 @@
 #include <vector>
 
 #include "StringUtility.h"
-//#include <thread>
-//#include <mutex>
-//#include <queue>
 
 #pragma comment(lib, "Ws2_32.lib")
 
 namespace UtilityLib
 {
-    namespace NetworkIO
+    namespace Network
     {
         enum class BlockingModeEnum
         {
@@ -578,7 +574,7 @@ namespace UtilityLib
             // int
             int RecvAll(uint8_t* buffer, size_t bufLen);
         };
-    }
-}
+    };
+};
 
 #endif
