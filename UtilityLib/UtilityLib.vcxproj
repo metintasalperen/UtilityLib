@@ -127,10 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FileIOUtility.h" />
     <ClInclude Include="StringUtility.h" />
     <ClInclude Include="UtilityLib.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FileIOUtility.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="StringUtility.cpp" />
   </ItemGroup>
