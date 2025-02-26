@@ -24,6 +24,9 @@
     <ClInclude Include="FileIOUtility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SocketCls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -35,5 +38,11 @@
     <ClCompile Include="FileIOUtility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SocketCls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

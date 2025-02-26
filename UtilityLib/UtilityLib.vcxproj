@@ -128,13 +128,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FileIOUtility.h" />
+    <ClInclude Include="SocketCls.h" />
     <ClInclude Include="StringUtility.h" />
     <ClInclude Include="UtilityLib.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FileIOUtility.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SocketCls.cpp" />
     <ClCompile Include="StringUtility.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
