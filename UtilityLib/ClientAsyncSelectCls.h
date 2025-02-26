@@ -7,6 +7,7 @@
 
 #define WM_SOCKET (WM_APP + 1)
 #define WM_SEND_STRING (WM_APP + 2)
+#define WM_QUIT_THREAD (WM_APP + 3)
 
 namespace UtilityLib
 {
@@ -48,6 +49,8 @@ namespace UtilityLib
 
             int GetLastWindowsError() const;
             void SetLastWindowsError(int errorCode);
+            HWND GetHwnd() const;
+            std::string GetBuffer();
 
             void MessageLoop() override;
             bool RegisterMessageWindowClass(const std::string& name) override;
@@ -56,7 +59,7 @@ namespace UtilityLib
             void ThreadEntryPoint() override;
 
         private:
-            void HandleReadMessage();
+            void HandleRecvMessage();
             void HandleSendMessage(const char* buffer);
         };
     };

@@ -63,11 +63,23 @@ namespace UtilityLib
             LastWindowsError = errorCode;
         }
 
+        HWND ClientAsyncSelectCls::GetHwnd() const
+        {
+            return Hwnd;
+        }
+
+        std::string ClientAsyncSelectCls::GetBuffer()
+        {
+            std::lock_guard<std::mutex> lock(BufferMutex);
+            return Buffer;
+        }
+
         void ClientAsyncSelectCls::MessageLoop()
         {
             MSG msg;
             while (GetMessage(&msg, nullptr, 0, 0))
             {
+                if (msg.message == WM_QUIT_THREAD) break;
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
             }
@@ -121,7 +133,7 @@ namespace UtilityLib
                 {
                     case FD_READ:
                     {
-                        HandleReadMessage();
+                        HandleRecvMessage();
                         break;
                     }
                     case FD_CLOSE:
@@ -139,6 +151,10 @@ namespace UtilityLib
                 HandleSendMessage(buffer);
 
                 return 0;
+            }
+            else if (msg == WM_QUIT_THREAD)
+            {
+
             }
             else
             {
@@ -171,7 +187,7 @@ namespace UtilityLib
             DestroyWindow(Hwnd);
         }
 
-        void ClientAsyncSelectCls::HandleReadMessage()
+        void ClientAsyncSelectCls::HandleRecvMessage()
         {
             std::string buffer;
             int32_t recvBytes = RecvAll(buffer);
