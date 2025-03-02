@@ -1,5 +1,5 @@
-#ifndef STRINGUTILITY_H
-#define STRINGUTILITY_H
+#ifndef STRINGPKG_H
+#define STRINGPKG_H
 
 #include <cstdint>
 #include <string>

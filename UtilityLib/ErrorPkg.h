@@ -19,7 +19,8 @@ namespace UtilityLib
             
             WinsockError,
             WinsockConnClosed,
-            WinsockCallGetAddressInfo
+            WinsockCallGetAddressInfo,
+            WinsockCallCreateSocket
         };
 
         class WSAErrorCls

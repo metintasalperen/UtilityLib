@@ -1,7 +1,7 @@
 #ifndef CLIENTEVENTSELECTCLS_H
 #define CLIENTEVENTSELECTCLS_H
 
-#include "SocketCls.h"
+#include "SocketPkg.h"
 #include <Windows.h>
 #include <mutex>
 #include <queue>

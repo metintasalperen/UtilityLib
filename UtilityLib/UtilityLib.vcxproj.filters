@@ -39,13 +39,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="StringUtility.h">
+    <ClInclude Include="StringPkg.h">
       <Filter>Header Files\String</Filter>
     </ClInclude>
     <ClInclude Include="FileIOUtility.h">
       <Filter>Header Files\File IO</Filter>
     </ClInclude>
-    <ClInclude Include="SocketCls.h">
+    <ClInclude Include="SocketPkg.h">
       <Filter>Header Files\Network</Filter>
     </ClInclude>
     <ClInclude Include="ClientAsyncSelectCls.h">
@@ -65,10 +65,10 @@
     <ClCompile Include="FileIOUtility.cpp">
       <Filter>Source Files\File IO</Filter>
     </ClCompile>
-    <ClCompile Include="StringUtility.cpp">
+    <ClCompile Include="StringPkg.cpp">
       <Filter>Source Files\String</Filter>
     </ClCompile>
-    <ClCompile Include="SocketCls.cpp">
+    <ClCompile Include="SocketPkg.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>
     <ClCompile Include="ClientAsyncSelectCls.cpp">

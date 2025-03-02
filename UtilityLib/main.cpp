@@ -160,7 +160,6 @@ static int ClientAsyncSelectLoop(UtilityLib::Network::ClientAsyncSelectCls& clie
 
     return 0;
 }
-
 static int ClientEventSelectLoop()
 {
     addrinfo hints = { 0 };

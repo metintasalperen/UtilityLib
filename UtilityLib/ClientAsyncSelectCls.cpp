@@ -184,7 +184,7 @@ namespace UtilityLib
         {
             size_t bytesSent;
             std::string buf(buffer);
-            auto result = Send(buf, bytesSent);
+            Send(buf, bytesSent);
         }
     };
 };

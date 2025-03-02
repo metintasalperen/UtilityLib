@@ -1,5 +1,5 @@
-#ifndef SOCKETCLS_H
-#define SOCKETCLS_H
+#ifndef SOCKETPKG_H
+#define SOCKETPKG_H
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -12,7 +12,7 @@
 #include <vector>
 #include <mutex>
 
-#include "StringUtility.h"
+#include "StringPkg.h"
 #include "ErrorPkg.h"
 
 using namespace UtilityLib::Error;
@@ -34,6 +34,7 @@ namespace UtilityLib
         protected:
             SOCKET Sock;
             addrinfo Hints;
+            addrinfo* AddressInfoResults;
             std::string IpAddress;
             std::string Port;
 
@@ -107,6 +108,8 @@ namespace UtilityLib
             // Returns:
             // void
             void SetPort(const std::string& port);
+            ErrorEnum GetAddressInfo();
+            ErrorEnum GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
             // CreateSocket()
             // 
             // Summary:
@@ -195,8 +198,14 @@ namespace UtilityLib
         class SocketServerCls : public SocketCommonCls
         {
         public:
+            std::vector<SOCKET> clientSockets;
+
             SocketServerCls();
             SocketServerCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
+            
+            ErrorEnum Bind();
+            ErrorEnum Listen();
+            ErrorEnum Accept();
         };
 
         class SocketClientCls : public SocketCommonCls
@@ -207,9 +216,12 @@ namespace UtilityLib
             SocketClientCls();
             SocketClientCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
 
-            ErrorEnum GetAddressInfo();
-            ErrorEnum GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
             ErrorEnum Connect();
+        };
+
+        class ThreadedServerCls
+        {
+
         };
     };
 };

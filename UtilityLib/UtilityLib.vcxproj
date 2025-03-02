@@ -100,7 +100,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);FILE_IO_ON;WINDOWS_NETWORK_IO_ON;_WINSOCK_DEPRECATED_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -132,8 +132,8 @@
     <ClInclude Include="ClientEventSelectCls.h" />
     <ClInclude Include="ErrorPkg.h" />
     <ClInclude Include="FileIOUtility.h" />
-    <ClInclude Include="SocketCls.h" />
-    <ClInclude Include="StringUtility.h" />
+    <ClInclude Include="SocketPkg.h" />
+    <ClInclude Include="StringPkg.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ClientAsyncSelectCls.cpp" />
@@ -141,8 +141,8 @@
     <ClCompile Include="ErrorPkg.cpp" />
     <ClCompile Include="FileIOUtility.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="SocketCls.cpp" />
-    <ClCompile Include="StringUtility.cpp" />
+    <ClCompile Include="SocketPkg.cpp" />
+    <ClCompile Include="StringPkg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

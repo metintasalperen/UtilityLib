@@ -1,4 +1,4 @@
-#include "StringUtility.h"
+#include "StringPkg.h"
 
 namespace UtilityLib
 {
@@ -267,7 +267,7 @@ namespace UtilityLib
 
             for (size_t i = 0; i < size; i++)
             {
-                result += std::tolower(str[i]);
+                result += static_cast<const char>(std::tolower(str[i]));
             }
 
             return result;
@@ -279,7 +279,7 @@ namespace UtilityLib
 
             for (size_t i = 0; i < size; i++)
             {
-                result += std::toupper(str[i]);
+                result += static_cast<const char>(std::toupper(str[i]));
             }
 
             return result;
@@ -422,6 +422,8 @@ namespace UtilityLib
         {
             static const std::string BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef\
                                                      ghijklmnopqrstuvwxyz0123456789+/";
+            const size_t MASK = 0x3F;
+
             std::string out;
             int val = 0;
             int valb = -6;
@@ -432,14 +434,14 @@ namespace UtilityLib
                 valb += 8;
                 while (valb >= 0)
                 {
-                    out.push_back(BASE64_CHARS[(val >> valb) & 0x3F]);
+                    out.push_back(BASE64_CHARS[(val >> valb) & MASK]);
                     valb -= 6;
                 }
             }
 
             if (valb > -6)
             {
-                out.push_back(BASE64_CHARS[((val << 8) >> (valb + 8)) & 0x3F]);
+                out.push_back(BASE64_CHARS[((val << 8) >> (valb + 8)) & MASK]);
             }
 
             while (out.size() % 4)

@@ -70,9 +70,9 @@ namespace UtilityLib
                 if (netEvents.lNetworkEvents & FD_READ)
                 {
                     std::string buffer;
-                    auto result = Recv(buffer, 4096);
+                    auto errResult = Recv(buffer, 4096);
 
-                    if (result == ErrorEnum::Success)
+                    if (errResult == ErrorEnum::Success)
                     {
                         WriteToBuffer(buffer);
                     }

@@ -1,26 +1,37 @@
-#include "SocketCls.h"
+#include "SocketPkg.h"
 
 namespace UtilityLib
 {
     namespace Network
     {
         SocketCommonCls::SocketCommonCls() :
+            WSAErrorCls(),
             Sock(INVALID_SOCKET),
-            Hints(),
-            WSAErrorCls()
+            Hints{},
+            AddressInfoResults(nullptr)
         {
         }
         SocketCommonCls::SocketCommonCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) :
+            WSAErrorCls(),
             Sock(INVALID_SOCKET),
             Hints(hints),
             IpAddress(ipAddress),
             Port(port),
-            WSAErrorCls()
+            AddressInfoResults(nullptr)
         {
         }
         SocketCommonCls::~SocketCommonCls()
         {
-            CloseSocket();
+            if (AddressInfoResults != nullptr)
+            {
+                freeaddrinfo(AddressInfoResults);
+            }
+
+            if (Sock != INVALID_SOCKET)
+            {
+                CloseSocket();
+            }
+
             CleanupWinsock();
         }
         ErrorEnum SocketCommonCls::InitializeWinsock()
@@ -62,6 +73,34 @@ namespace UtilityLib
         void SocketCommonCls::SetPort(const std::string& port)
         {
             Port = port;
+        }
+        ErrorEnum SocketCommonCls::GetAddressInfo()
+        {
+            // Before getting new address info, cleanup already acquired address info first..
+            if (AddressInfoResults != nullptr)
+            {
+                freeaddrinfo(AddressInfoResults);
+            }
+
+            int iResult = getaddrinfo(IpAddress.c_str(),
+                Port.c_str(),
+                &Hints,
+                &AddressInfoResults);
+
+            if (iResult != 0)
+            {
+                SetLastWsaError(WSAGetLastError());
+                return ErrorEnum::WinsockError;
+            }
+            return ErrorEnum::Success;
+        }
+        ErrorEnum SocketCommonCls::GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port)
+        {
+            Hints = hints;
+            IpAddress = ipAddress;
+            Port = port;
+
+            return GetAddressInfo();
         }
         ErrorEnum SocketCommonCls::CreateSocket()
         {
@@ -119,7 +158,7 @@ namespace UtilityLib
                     return ErrorEnum::WinsockConnClosed;
                 }
 
-                buffer.assign(buf, iResult);
+                buffer.assign(buf, static_cast<size_t>(iResult));
                 delete[] buf;
                 return ErrorEnum::Success;
             }
@@ -174,6 +213,56 @@ namespace UtilityLib
             : SocketCommonCls(hints, ipAddress, port)
         {
         }
+        ErrorEnum SocketServerCls::Bind()
+        {
+            if (AddressInfoResults == nullptr)
+            {
+                return ErrorEnum::WinsockCallGetAddressInfo;
+            }
+
+            if (Sock == INVALID_SOCKET)
+            {
+                return ErrorEnum::WinsockCallCreateSocket;
+            }
+
+            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
+            {
+                int iResult = bind(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+
+                if (iResult != SOCKET_ERROR)
+                {
+                    return ErrorEnum::Success;
+                }
+            }
+
+            SetLastWsaError(WSAGetLastError());
+            return ErrorEnum::WinsockError;
+        }
+        ErrorEnum SocketServerCls::Listen()
+        {
+            int iResult = listen(Sock, SOMAXCONN);
+
+            if (iResult == SOCKET_ERROR)
+            {
+                SetLastWsaError(WSAGetLastError());
+                return ErrorEnum::WinsockError;
+            }
+
+            return ErrorEnum::Success;
+        }
+        ErrorEnum SocketServerCls::Accept()
+        {
+            SOCKET ClientSock = accept(Sock, nullptr, nullptr);
+
+            if (ClientSock == INVALID_SOCKET)
+            {
+                SetLastWsaError(WSAGetLastError());
+                return ErrorEnum::WinsockError;
+            }
+
+            clientSockets.push_back(ClientSock);
+            return ErrorEnum::Success;
+        }
 
         SocketClientCls::SocketClientCls() :
             SocketCommonCls(),
@@ -185,33 +274,16 @@ namespace UtilityLib
             AddressInfoResults(nullptr)
         {
         }
-        ErrorEnum SocketClientCls::GetAddressInfo()
-        {
-            int iResult = getaddrinfo(IpAddress.c_str(),
-                Port.c_str(),
-                &Hints,
-                &AddressInfoResults);
-
-            if (iResult != 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketClientCls::GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port)
-        {
-            Hints = hints;
-            IpAddress = ipAddress;
-            Port = port;
-
-            return GetAddressInfo();
-        }
         ErrorEnum SocketClientCls::Connect()
         {
             if (AddressInfoResults == nullptr)
             {
                 return ErrorEnum::WinsockCallGetAddressInfo;
+            }
+
+            if (Sock == INVALID_SOCKET)
+            {
+                return ErrorEnum::WinsockCallCreateSocket;
             }
 
             for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
