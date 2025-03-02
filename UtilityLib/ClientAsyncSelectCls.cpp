@@ -32,28 +32,18 @@ namespace UtilityLib
                 return DefWindowProc(hwnd, msg, wParam, lParam);
             }
         }
-        
         ClientAsyncSelectCls::ClientAsyncSelectCls() :
-            SocketCls(),
+            SocketClientCls(),
             AsyncSelectBaseCls(),
             LastWindowsError(0)
         {
         }
-        ClientAsyncSelectCls::ClientAsyncSelectCls(const addrinfo& hints) :
-            SocketCls(hints),
+        ClientAsyncSelectCls::ClientAsyncSelectCls(const addrinfo& hints, const std::string& nodeName, const std::string& serviceName) :
+            SocketClientCls(hints, nodeName, serviceName),
             AsyncSelectBaseCls(),
             LastWindowsError(0)
         {
         }
-        ClientAsyncSelectCls::ClientAsyncSelectCls(const addrinfo& hints, 
-                                             const std::string& nodeName, 
-                                             const std::string& serviceName) :
-            SocketCls(hints, nodeName, serviceName),
-            AsyncSelectBaseCls(),
-            LastWindowsError(0)
-        {
-        }
-
         int ClientAsyncSelectCls::GetLastWindowsError() const
         {
             return LastWindowsError;
@@ -62,18 +52,15 @@ namespace UtilityLib
         {
             LastWindowsError = errorCode;
         }
-
         HWND ClientAsyncSelectCls::GetHwnd() const
         {
             return Hwnd;
         }
-
         std::string ClientAsyncSelectCls::GetBuffer()
         {
             std::lock_guard<std::mutex> lock(BufferMutex);
             return Buffer;
         }
-
         void ClientAsyncSelectCls::MessageLoop()
         {
             MSG msg;
@@ -152,10 +139,6 @@ namespace UtilityLib
 
                 return 0;
             }
-            else if (msg == WM_QUIT_THREAD)
-            {
-
-            }
             else
             {
                 return DefWindowProc(Hwnd, msg, wParam, lParam);
@@ -178,7 +161,7 @@ namespace UtilityLib
             int32_t iResult = WSAAsyncSelect(Sock, Hwnd, WM_SOCKET, FD_READ | FD_CLOSE);
             if (iResult == SOCKET_ERROR)
             {
-                SetLastSocketError(WSAGetLastError());
+                SetLastWsaError(WSAGetLastError());
                 DestroyWindow(Hwnd);
                 return;
             }
@@ -186,31 +169,22 @@ namespace UtilityLib
             MessageLoop();
             DestroyWindow(Hwnd);
         }
-
         void ClientAsyncSelectCls::HandleRecvMessage()
         {
             std::string buffer;
-            int32_t recvBytes = RecvAll(buffer);
+            ErrorEnum recvBytes = Recv(buffer, 4096);
 
-            if (recvBytes > 0)
+            if (recvBytes == ErrorEnum::Success)
             {
                 std::lock_guard<std::mutex> lock(BufferMutex);
                 Buffer = buffer;
             }
-            else
-            {
-                LastWindowsError = 0;
-                // LastWsaError is already set by RecvAll
-            }
         }
         void ClientAsyncSelectCls::HandleSendMessage(const char* buffer)
         {
-            int32_t bytesSent = SendAll(buffer);
-            if (bytesSent < 0)
-            {
-                LastWindowsError = 0;
-                // LastWsaError is already set by Send()
-            }
+            size_t bytesSent;
+            std::string buf(buffer);
+            auto result = Send(buf, bytesSent);
         }
     };
 };

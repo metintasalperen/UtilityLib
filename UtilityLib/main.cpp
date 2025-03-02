@@ -15,46 +15,45 @@ static void SetupData(addrinfo& hints, std::string& nodeName, std::string& servi
     std::cout << "Enter port: ";
     std::getline(std::cin, serviceName);
 }
-static bool InitClient(UtilityLib::Network::SocketCls& client, const addrinfo& hints, const std::string& nodeName, const std::string& serviceName)
+static bool InitClient(UtilityLib::Network::SocketClientCls& client, const addrinfo& hints, const std::string& nodeName, const std::string& serviceName)
 {
-    bool result = client.InitializeWinsock();
-    if (!result)
+    ErrorEnum result = client.InitializeWinsock();
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot initalize winsock. Error code: " << client.GetLastSocketError() << std::endl;
-        return result;
+        std::cerr << "Cannot initalize winsock. Error code: " << client.GetLastWsaError() << std::endl;
+        return false;
     }
 
     result = client.GetAddressInfo(hints, nodeName, serviceName);
-    if (!result)
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot getaddrinfo. Error code: " << client.GetLastSocketError() << std::endl;
-        return result;
+        std::cerr << "Cannot getaddrinfo. Error code: " << client.GetLastWsaError() << std::endl;
+        return false;
     }
 
     result = client.CreateSocket();
-    if (!result)
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot create socket. Error code: " << client.GetLastSocketError() << std::endl;
-        return result;
+        std::cerr << "Cannot create socket. Error code: " << client.GetLastWsaError() << std::endl;
+        return false;
     }
 
     client.SetBlockingMode(UtilityLib::Network::BlockingMode::NonBlocking);
 
     result = client.Connect();
     int i = 0;
-    while (result == false && i < 15)
+    while (result != ErrorEnum::Success && i < 15)
     {
-        if (client.GetLastSocketError() == WSAEWOULDBLOCK ||
-            client.GetLastSocketError() == WSAEALREADY)
+        if (client.GetLastWsaError() == WSAEWOULDBLOCK ||
+            client.GetLastWsaError() == WSAEALREADY)
         {
             std::cout << "Server is unreachable yet, will try again in 1 sec for " << 15 - i << " times..." << std::endl;
             i++;
             Sleep(1000);
             result = client.Connect();
         }
-        else if (client.GetLastSocketError() == WSAEISCONN)
+        else if (client.GetLastWsaError() == WSAEISCONN)
         {
-            result = true;
             break;
         }
         else
@@ -63,21 +62,24 @@ static bool InitClient(UtilityLib::Network::SocketCls& client, const addrinfo& h
         }
     }
 
-    if (result == false)
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Could not connect to the server... Error code: " << client.GetLastSocketError() << std::endl
+        std::cerr << "Could not connect to the server... Error code: " 
+            << client.GetLastWsaError() << std::endl
             << "Shutting down..." << std::endl;
+
+        return false;
     }
     else
     {
         client.SetBlockingMode(UtilityLib::Network::BlockingMode::Blocking);
         std::cout << "Connected to server... " << nodeName << ":" << serviceName << std::endl;
-    }
 
-    return result;
+        return true;
+    }
 }
 
-static int ClientBlockingLoop(UtilityLib::Network::SocketCls& client)
+static int ClientBlockingLoop(UtilityLib::Network::SocketClientCls& client)
 {
     while (true)
     {
@@ -91,25 +93,32 @@ static int ClientBlockingLoop(UtilityLib::Network::SocketCls& client)
             return 0;
         }
 
-        int result = client.SendAll(input);
-        if (result < 0)
+        size_t len;
+        auto result = client.Send(input, len);
+        if (result == ErrorEnum::WinsockError)
         {
             std::cerr << "Error occurred while sending data. Error code: " <<
-                WSAGetLastError() << std::endl;
+                client.GetLastWsaError() << std::endl;
             return -1;
+        }
+        else if (result == ErrorEnum::WinsockConnClosed)
+        {
+            std::cout << "Server disconnected. Shutting down..." << std::endl;
+            return 0;
         }
 
         std::string response;
-        result = client.RecvAll(response);
+        result = client.Recv(response, response.size());
 
-        if (result < 0)
+        if (result == ErrorEnum::WinsockError)
         {
-            std::cerr << "Error occurred while receiving data. Error code: " << WSAGetLastError() << std::endl;
+            std::cerr << "Error occurred while receiving data. Error code: " <<
+                client.GetLastWsaError() << std::endl;
             return -1;
         }
-        else if (result == 0)
+        else if (result == ErrorEnum::WinsockConnClosed)
         {
-            std::cout << "Server closed connection. Shutting down..." << std::endl;
+            std::cout << "Server disconnected. Shutting down..." << std::endl;
             return 0;
         }
 
@@ -169,31 +178,31 @@ static int ClientEventSelectLoop()
     std::getline(std::cin, serviceName);
 
     UtilityLib::Network::ClientEventSelectCls client;
-    bool result = client.InitializeWinsock();
-    if (!result)
+    auto result = client.InitializeWinsock();
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot initalize winsock. Error code: " << client.GetLastSocketError() << std::endl;
+        std::cerr << "Cannot initalize winsock. Error code: " << client.GetLastWsaError() << std::endl;
         return -1;
     }
 
     result = client.GetAddressInfo(hints, nodeName, serviceName);
-    if (!result)
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot getaddrinfo. Error code: " << client.GetLastSocketError() << std::endl;
+        std::cerr << "Cannot getaddrinfo. Error code: " << client.GetLastWsaError() << std::endl;
         return -1;
     }
 
     result = client.CreateSocket();
-    if (!result)
+    if (result != ErrorEnum::Success)
     {
-        std::cerr << "Cannot create socket. Error code: " << client.GetLastSocketError() << std::endl;
+        std::cerr << "Cannot create socket. Error code: " << client.GetLastWsaError() << std::endl;
         return -1;
     }
 
     result = client.Connect();
-    while (result == false)
+    while (result != ErrorEnum::Success)
     {
-        if (client.GetLastSocketError() == WSAEWOULDBLOCK || client.GetLastSocketError() == WSAEALREADY)
+        if (client.GetLastWsaError() == WSAEWOULDBLOCK || client.GetLastWsaError() == WSAEALREADY)
         {
             std::cout << "Server is unreachable yet, will try again in 10 seconds..." << std::endl;
             Sleep(10000);
@@ -202,7 +211,7 @@ static int ClientEventSelectLoop()
         else
         {
             std::cerr << "Cannot connnect to server. Error code: " <<
-                client.GetLastSocketError() << std::endl;
+                client.GetLastWsaError() << std::endl;
             return -1;
         }
     }

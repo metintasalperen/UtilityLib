@@ -31,7 +31,7 @@ namespace UtilityLib
         };
 
         class ClientAsyncSelectCls :
-            public SocketCls,
+            public SocketClientCls,
             public AsyncSelectBaseCls
         {
         private:
@@ -42,7 +42,6 @@ namespace UtilityLib
             std::mutex BufferMutex;
 
             ClientAsyncSelectCls();
-            ClientAsyncSelectCls(const addrinfo& hints);
             ClientAsyncSelectCls(const addrinfo& hints,
                 const std::string& nodeName,
                 const std::string& serviceName);

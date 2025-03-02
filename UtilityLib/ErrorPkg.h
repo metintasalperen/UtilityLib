@@ -9,13 +9,17 @@ namespace UtilityLib
     {
         enum class ErrorEnum
         {
-            Success = 0,
-            InvalidArgument = -1,
-            OutOfRange = -2,
-            WinsockError = -3,
-            WinsockConnClosed = -4,
-            WindowsError = -5,
-            InsufficientMemory = -6
+            Success,
+
+            InvalidArgument,
+            OutOfRange,
+            InsufficientMemory,
+
+            WindowsError,
+            
+            WinsockError,
+            WinsockConnClosed,
+            WinsockCallGetAddressInfo
         };
 
         class WSAErrorCls

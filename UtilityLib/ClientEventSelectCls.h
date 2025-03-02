@@ -19,7 +19,7 @@ namespace UtilityLib
         };
 
         class ClientEventSelectCls :
-            public SocketCls,
+            public SocketClientCls,
             public EventSelectBaseCls
         {
         private:
@@ -35,7 +35,6 @@ namespace UtilityLib
             
         public:
             ClientEventSelectCls();
-            ClientEventSelectCls(const addrinfo& hints);
             ClientEventSelectCls(const addrinfo& hints,
                 const std::string& nodeName,
                 const std::string& serviceName);
