@@ -5,6 +5,11 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <charconv>
+#include <concepts>
+
+#include "ErrorPkg.h"
+using namespace UtilityLib::Error;
 
 namespace UtilityLib
 {
@@ -299,6 +304,46 @@ namespace UtilityLib
         // 
         // std::string
         std::string EncodeBase64(const std::string& in);
+        // StringToIntegral()
+        // 
+        // Summary:
+        // Transforms string literal to the integral type
+        // 
+        // Arguments:
+        // const std::string& str  --- In
+        // size_t offset           --- In
+        // size_t count            --- In
+        // T& value                --- Out (T must be integral type)
+        // int32_t base           --- In
+        // 
+        // Returns:
+        // UtilityLib::Error::ErrorEnum
+        template<std::integral T>
+        ErrorEnum StringToIntegral(const std::string& str, size_t offset, size_t count, T& value, int32_t base = 10)
+        {
+            if (offset + count > str.size())
+            {
+                return ErrorEnum::InvalidArgument;
+            }
+
+            ErrorEnum result = ErrorEnum::Success;
+
+            const char* start = str.data() + offset;
+            const char* end = str.data() + offset + count;
+
+            std::from_chars_result conversionResult = std::from_chars(start, end, value, base);
+
+            if (conversionResult.ec == std::errc::invalid_argument)
+            {
+                result = ErrorEnum::InvalidArgument;
+            }
+            else if (conversionResult.ec == std::errc::result_out_of_range)
+            {
+                result = ErrorEnum::OutOfRange;
+            }
+
+            return result;
+        }
     };
 };
 
