@@ -85,6 +85,60 @@ namespace UtilityLib
 
             return result;
         }
+        ErrorEnum SocketCommonCls::Recv(std::string& buffer, size_t bufferLength)
+        {
+            char* buf = new char[bufferLength];
+            buffer.clear();
+
+            if (buf != nullptr)
+            {
+                int iResult = recv(Sock, buf, bufferLength, 0);
+
+                if (iResult < 0)
+                {
+                    delete[] buf;
+                    SetLastWsaError(WSAGetLastError());
+                    return ErrorEnum::WinsockError;
+                }
+                if (iResult == 0)
+                {
+                    delete[] buf;
+                    return ErrorEnum::WinsockConnClosed;
+                }
+
+                buffer.assign(buf, iResult);
+                delete[] buf;
+                return ErrorEnum::Success;
+            }
+            else
+            {
+                return ErrorEnum::InsufficientMemory;
+            }
+        }
+        ErrorEnum SocketCommonCls::Send(const std::string& buffer, size_t& bufferLength)
+        {
+            if (buffer.size() > INT_MAX)
+            {
+                return ErrorEnum::OutOfRange;
+            }
+
+            int iResult = send(Sock, buffer.c_str(), static_cast<int>(buffer.size()), 0);
+
+            if (iResult < 0)
+            {
+                SetLastWsaError(WSAGetLastError());
+                bufferLength = 0;
+                return ErrorEnum::WinsockError;
+            }
+            else if (iResult == 0)
+            {
+                bufferLength = 0;
+                return ErrorEnum::WinsockConnClosed;
+            }
+
+            bufferLength = static_cast<size_t>(iResult);
+            return ErrorEnum::Success;
+        }
 
         SocketCls::SocketCls() :
             Sock(INVALID_SOCKET),

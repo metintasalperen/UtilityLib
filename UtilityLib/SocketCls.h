@@ -116,7 +116,43 @@ namespace UtilityLib
             // Specific error code can be obtained by 
             // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
             ErrorEnum CloseSocket();
-            //ErrorEnum Recv(std::string&);
+            // Recv()
+            // 
+            // Summary:
+            // Receive data
+            // To see how much bytes are received, check buffer.size() upon return
+            // 
+            // Arguments:
+            // std::string& buffer  --- Out
+            // size_t bufferLength  --- In
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError or,
+            //            ErrorEnum::WinsockConnClosed or, (if recv() returns 0,  which means server closed connection)
+            //            ErrorEnum::InsufficientMemory, (if memory allocation fails)
+            // 
+            // Specific error code can be obtained by
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum Recv(std::string& buffer, size_t bufferLength);
+            // Send()
+            // 
+            // Summary:
+            // Send data
+            // 
+            // Arguments:
+            // const std::string& buffer  --- In
+            // size_t& bytesSent          --- Out
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError or,
+            //            ErrorEnum::OutOfRange or, (if buffer.size() > INT_MAX)
+            //            ErrorEnum::WinsockConnClosed (if recv() returns 0,  which means server closed connection)
+            // 
+            // Specific error code can be obtained by
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum Send(const std::string& buffer, size_t& bufferLength);
         };
 
         class SocketCls

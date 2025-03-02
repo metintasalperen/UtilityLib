@@ -13,8 +13,9 @@ namespace UtilityLib
             InvalidArgument = -1,
             OutOfRange = -2,
             WinsockError = -3,
-            WindowsError = -4,
-            InsufficientMemory = -5
+            WinsockConnClosed = -4,
+            WindowsError = -5,
+            InsufficientMemory = -6
         };
 
         class WSAErrorCls
