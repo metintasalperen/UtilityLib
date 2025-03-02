@@ -31,6 +31,12 @@
     <Filter Include="Source Files\Network">
       <UniqueIdentifier>{f0616b66-2fd7-45bd-ab13-298c9bd3abdb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Error">
+      <UniqueIdentifier>{951bbc90-e957-412d-8f5f-53832a48e329}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Error">
+      <UniqueIdentifier>{5d8acb6b-ffe2-4215-93fb-0c568969a868}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="StringUtility.h">
@@ -47,6 +53,9 @@
     </ClInclude>
     <ClInclude Include="ClientEventSelectCls.h">
       <Filter>Header Files\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrorPkg.h">
+      <Filter>Header Files\Error</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +76,9 @@
     </ClCompile>
     <ClCompile Include="ClientEventSelectCls.cpp">
       <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorPkg.cpp">
+      <Filter>Source Files\Error</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

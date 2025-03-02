@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="ClientAsyncSelectCls.h" />
     <ClInclude Include="ClientEventSelectCls.h" />
+    <ClInclude Include="ErrorPkg.h" />
     <ClInclude Include="FileIOUtility.h" />
     <ClInclude Include="SocketCls.h" />
     <ClInclude Include="StringUtility.h" />
@@ -136,6 +137,7 @@
   <ItemGroup>
     <ClCompile Include="ClientAsyncSelectCls.cpp" />
     <ClCompile Include="ClientEventSelectCls.cpp" />
+    <ClCompile Include="ErrorPkg.cpp" />
     <ClCompile Include="FileIOUtility.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SocketCls.cpp" />
