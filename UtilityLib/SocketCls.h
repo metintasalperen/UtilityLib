@@ -10,8 +10,12 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "StringUtility.h"
+#include "ErrorPkg.h"
+
+using namespace UtilityLib::Error;
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -19,18 +23,116 @@ namespace UtilityLib
 {
     namespace Network
     {
-        enum class BlockingModeEnum
+        enum class BlockingMode
         {
             Blocking = 0,
             NonBlocking = 1
+        };
+
+        class SocketCommonCls : public WSAErrorCls
+        {
+        protected:
+            SOCKET Sock;
+            addrinfo Hints;
+            std::string IpAddress;
+            std::string Port;
+
+        public:
+            SocketCommonCls();
+            SocketCommonCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
+            ~SocketCommonCls();
+            // InitializeWinsock()
+            // 
+            // Summary:
+            // Initializes Winsock2 by calling WSAStartup() with 2.2 version
+            // A successfull call to this function must be made before using any other functions
+            // 
+            // Arguments:
+            // -
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError
+            // 
+            // Specific error code can be obtained by 
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum InitializeWinsock();
+            // CleanupWinsock()
+            // 
+            // Summary:
+            // Cleanup Winsock2
+            // For every sucessfull call to the InitializeWinsock()
+            // There must be equal call to the CleanupWinsock()
+            // 
+            // Arguments:
+            // -
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError
+            // 
+            // Specific error code can be obtained by 
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum CleanupWinsock();
+            // SetHints()
+            // 
+            // Summary:
+            // Provide hints
+            // 
+            // Arguments:
+            // const addrinfo& hints  --- In
+            // 
+            // Returns:
+            // void
+            void SetHints(const addrinfo& hints);
+            // CreateSocket()
+            // 
+            // Summary:
+            // Wrapper to the socket()
+            // Creates socket
+            // 
+            // Arguments:
+            // -
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError
+            // 
+            // Specific error code can be obtained by 
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum CreateSocket();
+            // CloseSocket()
+            // 
+            // Summary:
+            // Closes the object's existing socket
+            // 
+            // Arguments:
+            // -
+            // 
+            // Returns:
+            // On success ErrorEnum::Success
+            // On failure ErrorEnum::WinsockError
+            // 
+            // Specific error code can be obtained by 
+            // calling GetLastWsaError() or GetLastWsaErrorAsync() on failure
+            ErrorEnum CloseSocket();
+            //ErrorEnum Recv(std::string&);
         };
 
         class SocketCls
         {
         protected:
             SOCKET Sock;
+
+            // Client related data
             addrinfo* AddressInfoResults;
+
+            // Common data
             addrinfo Hints;
+            std::string IpAddress;
+            std::string Port;
+
+            // WSA Error Code
             int LastWsaError;
 
         public:
@@ -38,6 +140,8 @@ namespace UtilityLib
             SocketCls();
             // Construct object with default values except addrinfo Hints
             SocketCls(const addrinfo& hints);
+            // Construct object with default values except IpAddress and Port
+            SocketCls(const std::string& ipAddress, const std::string& port);
             // 1. Construct object with provided values
             // 2. Initialize Winsock2
             // 3. Get Address Info according to the hints provided
@@ -49,9 +153,7 @@ namespace UtilityLib
             // and check GetLastSocketError() != 0 to see the related error code
             // 
             // Note 2: Constructor will not call Connect(), call it manually when needed
-            SocketCls(const addrinfo& hints, 
-                const std::string& nodeName, 
-                const std::string& serviceName);
+            SocketCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
             // Destroy owned resources, then object itself
             ~SocketCls();
 
@@ -153,6 +255,8 @@ namespace UtilityLib
             // void
             void SetLastSocketError(int errorCode);
 
+            bool GetAddressInfo();
+            bool GetAddressInfo(const addrinfo& hints);
             // GetAddressInfo()
             // 
             // Summary:
@@ -168,7 +272,7 @@ namespace UtilityLib
             // 
             // Returns:
             // bool
-            bool GetAddressInfo(const std::string& nodeName, const std::string& serviceName);
+            bool GetAddressInfo(const std::string& ipAddress, const std::string& port);
             // GetAddressInfo()
             // 
             // Summary:
@@ -186,9 +290,7 @@ namespace UtilityLib
             // 
             // Returns:
             // bool
-            bool GetAddressInfo(const addrinfo& hints, 
-                const std::string& nodeName, 
-                const std::string& serviceName);
+            bool GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
             // CreateSocket()
             // 
             // Summary:
@@ -233,6 +335,12 @@ namespace UtilityLib
             // Returns:
             // bool
             bool Connect();
+            // Bind()
+            // 
+            // Summary
+            bool Bind();
+
+
             // SetBlockingMode()
             // 
             // Summary:
@@ -246,7 +354,7 @@ namespace UtilityLib
             // 
             // Returns:
             // bool
-            bool SetBlockingMode(BlockingModeEnum mode);
+            bool SetBlockingMode(BlockingMode mode);
 
             // Send()
             // 

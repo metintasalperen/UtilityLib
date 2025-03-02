@@ -4,6 +4,88 @@ namespace UtilityLib
 {
     namespace Network
     {
+        SocketCommonCls::SocketCommonCls() :
+            Sock(INVALID_SOCKET),
+            Hints(),
+            WSAErrorCls()
+        {
+        }
+        SocketCommonCls::SocketCommonCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) :
+            Sock(INVALID_SOCKET),
+            Hints(hints),
+            IpAddress(ipAddress),
+            Port(port),
+            WSAErrorCls()
+        {
+        }
+        SocketCommonCls::~SocketCommonCls()
+        {
+            CloseSocket();
+            CleanupWinsock();
+        }
+        ErrorEnum SocketCommonCls::InitializeWinsock()
+        {
+            ErrorEnum result = ErrorEnum::Success;
+
+            WSADATA wsaData;
+            int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+            if (iResult != 0)
+            {
+                SetLastWsaError(WSAGetLastError());
+                result = ErrorEnum::WinsockError;
+            }
+
+            return result;
+        }
+        ErrorEnum SocketCommonCls::CleanupWinsock()
+        {
+            ErrorEnum result = ErrorEnum::Success;
+
+            int iResult = WSACleanup();
+            if (iResult == SOCKET_ERROR)
+            {
+                SetLastWsaError(WSAGetLastError());
+                result = ErrorEnum::WinsockError;
+            }
+
+            return result;
+        }
+        void SocketCommonCls::SetHints(const addrinfo& hints)
+        {
+            Hints = hints;
+        }
+        ErrorEnum SocketCommonCls::CreateSocket()
+        {
+            ErrorEnum result = ErrorEnum::Success;
+            Sock = socket(Hints.ai_family, Hints.ai_socktype, Hints.ai_protocol);
+
+            if (Sock == INVALID_SOCKET)
+            {
+                result = ErrorEnum::WinsockError;
+                SetLastWsaError(WSAGetLastError());
+            }
+
+            return result;
+        }
+        ErrorEnum SocketCommonCls::CloseSocket()
+        {
+            ErrorEnum result = ErrorEnum::Success;
+            int iResult = closesocket(Sock);
+
+            if (iResult != 0)
+            {
+                SetLastWsaError(WSAGetLastError());
+                result = ErrorEnum::WinsockError;
+            }
+            else
+            {
+                Sock = INVALID_SOCKET;
+            }
+
+            return result;
+        }
+
         SocketCls::SocketCls() :
             Sock(INVALID_SOCKET),
             AddressInfoResults(nullptr),
@@ -18,13 +100,22 @@ namespace UtilityLib
             LastWsaError(0)
         {
         }
-        SocketCls::SocketCls(const addrinfo& hints, 
-                             const std::string& nodeName, 
-                             const std::string& serviceName) :
+        SocketCls::SocketCls(const std::string& ipAddress, const std::string& port) :
+            Sock(INVALID_SOCKET),
+            AddressInfoResults(nullptr),
+            Hints(),
+            LastWsaError(0),
+            IpAddress(ipAddress),
+            Port(port)
+        {
+        }
+        SocketCls::SocketCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) :
             Sock(INVALID_SOCKET),
             AddressInfoResults(nullptr),
             Hints(hints),
-            LastWsaError(0)
+            LastWsaError(0),
+            IpAddress(ipAddress),
+            Port(port)
         {
             bool result = InitializeWinsock();
             if (result == false)
@@ -32,7 +123,7 @@ namespace UtilityLib
                 return;
             }
 
-            result = GetAddressInfo(nodeName, serviceName);
+            result = GetAddressInfo(IpAddress, Port);
             if (result == false)
             {
                 CleanupWinsock();
@@ -105,12 +196,12 @@ namespace UtilityLib
             LastWsaError = errorCode;
         }
 
-        bool SocketCls::GetAddressInfo(const std::string& nodeName, const std::string& serviceName)
+        bool SocketCls::GetAddressInfo()
         {
-            int iResult = getaddrinfo(nodeName.c_str(), 
-                                     serviceName.c_str(), 
-                                     &Hints, 
-                                     &AddressInfoResults);
+            int iResult = getaddrinfo(IpAddress.c_str(),
+                Port.c_str(),
+                &Hints,
+                &AddressInfoResults);
 
             if (iResult < 0)
             {
@@ -119,13 +210,23 @@ namespace UtilityLib
             }
             return true;
         }
-
-        bool SocketCls::GetAddressInfo(const addrinfo& hints, 
-                                       const std::string& nodeName, 
-                                       const std::string& serviceName)
+        bool SocketCls::GetAddressInfo(const addrinfo& hints)
         {
             Hints = hints;
-            return GetAddressInfo(nodeName, serviceName);
+            return GetAddressInfo();
+        }
+        bool SocketCls::GetAddressInfo(const std::string& ipAddress, const std::string& port)
+        {
+            IpAddress = ipAddress;
+            Port = port;
+            return GetAddressInfo();
+        }
+        bool SocketCls::GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port)
+        {
+            Hints = hints;
+            IpAddress = ipAddress;
+            Port = port;
+            return GetAddressInfo();
         }
         bool SocketCls::CreateSocket()
         {
@@ -171,7 +272,29 @@ namespace UtilityLib
             LastWsaError = WSAGetLastError();
             return false;
         }
-        bool SocketCls::SetBlockingMode(BlockingModeEnum mode)
+        bool SocketCls::Bind()
+        {
+            sockaddr_in serverAddr = { 0 };
+            serverAddr.sin_family = Hints.ai_family;
+            int port;
+            ErrorEnum convResult = UtilityLib::String::StringToIntegral(Port, 0, Port.size(), port);
+            if (convResult != ErrorEnum::Success)
+            {
+                return false;
+            }
+            serverAddr.sin_port = port;
+            serverAddr.sin_addr.S_un.S_addr = inet_addr(IpAddress.c_str());
+
+            sockaddr* serverPtr = reinterpret_cast<sockaddr*>(&serverAddr);
+            int iResult = bind(Sock, serverPtr, sizeof(serverAddr));
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWsaError = WSAGetLastError();
+                return false;
+            }
+            return true;
+        }
+        bool SocketCls::SetBlockingMode(BlockingMode mode)
         {
             u_long blockingMode = static_cast<u_long>(mode);
             int iResult = ioctlsocket(Sock, FIONBIO, &blockingMode);
