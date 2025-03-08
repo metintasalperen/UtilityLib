@@ -311,7 +311,7 @@ namespace UtilityLib
                 return ErrorEnum::WinsockError;
             }
 
-            buffer.assign(buf.c_str(), static_cast<size_t>(iResult));
+            buffer.assign(bufPtr, static_cast<size_t>(iResult));
             return ErrorEnum::Success;
         }
         ErrorEnum SocketClientCls::SendTo(const char* buffer, size_t bufferLength, size_t& bytesSent)

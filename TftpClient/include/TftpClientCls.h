@@ -5,6 +5,8 @@
 #include "SocketPkg.h"
 #include "FilePkg.h"
 #include <cstdint>
+#include <string>
+#include <vector>
 #include <variant>
 #include <optional>
 #include <memory>
@@ -37,12 +39,13 @@ namespace Tftp
 		std::unique_ptr<UtilityLib::Network::SocketClientCls> Socket;
 		TftpClientCls();
 		TftpClientCls(const std::string& ipAddress);
-		void SetIpAddress(const std::string& ipAddress);
 
 	public:
 		static std::optional<TftpClientCls> Initialize(const std::string& ipAddress);
+        bool ChangeIpAddress(const std::string& ipAddress);
 
 		TftpErrorCodes ReadFile(const std::string& filename, const std::string& pathToSaveFile, Mode mode);
+        TftpErrorCodes WriteFile(const std::string& filename, const std::string& pathToFile, Mode mode);
 		int GetLastWinsockError();
 
 		TftpClientCls(TftpClientCls&&) noexcept = default;
@@ -59,6 +62,7 @@ namespace Tftp
 		std::string DetermineErrorMessage(const std::string& packet);
 
 		std::string CreateRrqPacket(const std::string& filename, Mode mode);
+        std::string CreateWrqPacket(const std::string& filename, Mode mode);
 		std::string CreateAckPacket(uint16_t block);
 		std::string CreateDataPacket(uint16_t block, const std::string& data);
 

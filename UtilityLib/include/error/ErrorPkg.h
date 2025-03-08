@@ -7,6 +7,7 @@ namespace UtilityLib
 {
 	namespace Error
 	{
+        // All error codes that can be returned by the library
 		enum class ErrorEnum
 		{
 			Success,
