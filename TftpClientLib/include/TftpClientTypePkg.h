@@ -42,6 +42,27 @@ namespace Tftp
         Mail = 2
     };
 
+    struct DataPacketStc
+    {
+        Opcode Opcode;
+        uint16_t Block;
+        std::string Data;
+    };
+
+    struct AckPacketStc
+    {
+        Opcode Opcode;
+        uint16_t Block;
+    };
+
+    struct ErrorPacketStc
+    {
+        Opcode Opcode;
+        TftpErrorCodes ErrorCode;
+        std::string ErrorMessage;
+    };
+
+
     const std::string TFTP_PORT = "69";
     const size_t OPCODE_SIZE = 2;
     const size_t BLOCK_SIZE = 2;

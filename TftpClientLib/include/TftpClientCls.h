@@ -13,26 +13,6 @@
 
 namespace Tftp
 {
-    struct DataPacketStc
-    {
-        Opcode Opcode;
-        uint16_t Block;
-        std::string Data;
-    };
-
-    struct AckPacketStc
-    {
-        Opcode Opcode;
-        uint16_t Block;
-    };
-
-    struct ErrorPacketStc
-    {
-        Opcode Opcode;
-        TftpErrorCodes ErrorCode;
-        std::string ErrorMessage;
-    };
-
     class TftpClientCls
     {
     private:
