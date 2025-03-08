@@ -5,17 +5,17 @@
 
 namespace UtilityLib
 {
-	namespace Error
-	{
+    namespace Error
+    {
         // All error codes that can be returned by the library
-		enum class ErrorEnum
-		{
-			Success,
+        enum class ErrorEnum
+        {
+            Success,
 
             // At least one of the parameter provided is invalid
-			InvalidArgument,
+            InvalidArgument,
             // At least one of the parameter provided is out of range
-			OutOfRange,
+            OutOfRange,
             // Cannot dynamically allocate memory
             InsufficientMemory,
 
@@ -23,14 +23,14 @@ namespace UtilityLib
             WindowsError,
 
             // Winsock2 API related error, use GetLastWsaError() or GetLastWsaErrorAsync() to retrieve spesific error code
-			WinsockError,
+            WinsockError,
             // Remote host closed connection gracefully
-			WinsockConnClosed,
+            WinsockConnClosed,
             // A successful call to GetAddressInfo() must be performed first
             WinsockCallGetAddressInfo,
             // A successful call to CreateSocket() must be performed first
-			WinsockCallCreateSocket
-		};
+            WinsockCallCreateSocket
+        };
 
         
         class WSAErrorCls
@@ -63,7 +63,7 @@ namespace UtilityLib
             int GetLastWindowsError();
             int GetLastWindowsErrorAsync();
         };
-	};
+    };
 };
 
 #endif

@@ -4,13 +4,13 @@
 
 int main()
 {
-	std::string ipAddr;
-	std::cout << "Ip Address of TFTP Server: ";
-	std::getline(std::cin, ipAddr);
-	
-	auto tftpClient = Tftp::TftpClientCls::Initialize(ipAddr);
-	if (tftpClient)
-	{
+    std::string ipAddr;
+    std::cout << "Ip Address of TFTP Server: ";
+    std::getline(std::cin, ipAddr);
+    
+    auto tftpClient = Tftp::TftpClientCls::Initialize(ipAddr);
+    if (tftpClient)
+    {
         std::string readOrWrite;
         std::cout << "Read or Write (r/w): ";
         std::getline(std::cin, readOrWrite);
@@ -64,10 +64,10 @@ int main()
         {
             std::cout << "Try again" << std::endl;
         }
-	}
-	else
-	{
+    }
+    else
+    {
         std::cerr << "Cannot initialize TFTP client" << std::endl;
-		return -1;
-	}
+        return -1;
+    }
 }
