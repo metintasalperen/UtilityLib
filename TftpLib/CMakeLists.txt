@@ -3,12 +3,13 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project(TftpClientLib)
+project(TftpLib)
 
-add_library(TftpClientLib STATIC
-    src/TftpClientCls.cpp)
+add_library(TftpLib STATIC
+    src/TftpClientCls.cpp
+    src/TftpServerCls.cpp)
 
-target_include_directories(TftpClientLib PRIVATE
+target_include_directories(TftpLib PRIVATE
     ${CMAKE_SOURCE_DIR}/UtilityLib/include/error
     ${CMAKE_SOURCE_DIR}/UtilityLib/include/file
     ${CMAKE_SOURCE_DIR}/UtilityLib/include/string
@@ -16,10 +17,10 @@ target_include_directories(TftpClientLib PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
-target_link_libraries(TftpClientLib PRIVATE
+target_link_libraries(TftpLib PRIVATE
     ${CMAKE_BINARY_DIR}/UtilityLib/UtilityLib.lib)
 
-set_target_properties(TftpClientLib PROPERTIES
+set_target_properties(TftpLib PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON)
 
