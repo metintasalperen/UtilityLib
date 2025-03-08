@@ -2,8 +2,8 @@
 
 namespace UtilityLib
 {
-    namespace Error
-    {
+	namespace Error
+	{
         WSAErrorCls::WSAErrorCls() :
             LastWsaError(0)
         {

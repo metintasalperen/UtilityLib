@@ -9,6 +9,7 @@
 #include <concepts>
 
 #include "ErrorPkg.h"
+
 using namespace UtilityLib::Error;
 
 namespace UtilityLib

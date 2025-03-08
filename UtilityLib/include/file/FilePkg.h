@@ -1,5 +1,5 @@
-#ifndef FILEIOUTILITY_H
-#define FILEIOUTILITY_H
+#ifndef FILEPKG_H
+#define FILEPKG_H
 
 #include <fstream>
 #include <string>
