@@ -20,6 +20,9 @@ namespace Tftp
     }
     std::optional<TftpClientCls> TftpClientCls::Initialize(const std::string& ipAddress)
     {
+        bool isIpAddressValid = UtilityLib::String::ValidateIpAddress(ipAddress);
+        if (!isIpAddressValid) return std::nullopt;
+
         TftpClientCls tftpClient(ipAddress);
 
         ErrorEnum result = tftpClient.Socket->InitializeWinsock();
@@ -46,6 +49,9 @@ namespace Tftp
     }
     bool TftpClientCls::ChangeIpAddress(const std::string& ipAddress)
     {
+        bool isIpAddressValid = UtilityLib::String::ValidateIpAddress(ipAddress);
+        if (!isIpAddressValid) return false;
+
         auto newSocket = std::make_unique<UtilityLib::Network::SocketClientCls>();
 
         addrinfo hints{};

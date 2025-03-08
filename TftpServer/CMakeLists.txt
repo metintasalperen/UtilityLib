@@ -7,7 +7,8 @@ project(TftpServer)
 
 add_executable(TftpServer
     src/main.cpp
-)
+    include/TftpServerCls.h
+    src/TftpServerCls.cpp)
 
 target_include_directories(TftpServer PRIVATE
     ${CMAKE_SOURCE_DIR}/UtilityLib/include/error

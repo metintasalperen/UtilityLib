@@ -345,6 +345,17 @@ namespace UtilityLib
 
             return result;
         }
+        // ValidateIpAddress()
+        // 
+        // Summary:
+        // Validates the provided string is a valid IP address
+        // 
+        // Arguments:
+        // const std::string& ipAddress  --- In
+        // 
+        // Returns:
+        // bool
+        bool ValidateIpAddress(const std::string& ipAddress);
     };
 };
 

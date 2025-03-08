@@ -449,5 +449,24 @@ namespace UtilityLib
 
             return out;
         }
+        bool ValidateIpAddress(const std::string& ipAddress)
+        {
+            std::vector<std::string> ipParts = Divide(ipAddress, '.');
+            if (ipParts.size() != 4)
+            {
+                return false;
+            }
+
+            for (const auto& part : ipParts)
+            {
+                uint32_t ipPart = 0;
+                ErrorEnum result = StringToIntegral<uint32_t>(part, static_cast<size_t>(0), part.size(), ipPart);
+
+                if (result != ErrorEnum::Success) return false;
+                if (ipPart > 255) return false;
+            }
+
+            return true;
+        }
     };
 };
