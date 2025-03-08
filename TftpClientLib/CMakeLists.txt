@@ -15,8 +15,9 @@ target_include_directories(TftpClientLib PRIVATE
     ${CMAKE_SOURCE_DIR}/UtilityLib/include/winsock
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+
 target_link_libraries(TftpClientLib PRIVATE
-    ${CMAKE_SOURCE_DIR}/out/build/x64-Debug/UtilityLib/UtilityLib.lib)
+    ${CMAKE_BINARY_DIR}/UtilityLib/UtilityLib.lib)
 
 set_target_properties(TftpClientLib PROPERTIES
     CXX_STANDARD 20

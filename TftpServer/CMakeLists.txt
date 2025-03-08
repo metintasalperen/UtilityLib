@@ -18,7 +18,7 @@ target_include_directories(TftpServer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(TftpServer PRIVATE
-    ${CMAKE_SOURCE_DIR}/out/build/x64-Debug/UtilityLib/UtilityLib.lib)
+    ${CMAKE_BINARY_DIR}/UtilityLib/UtilityLib.lib)
 
 set_target_properties(TftpServer PROPERTIES
     CXX_STANDARD 20
