@@ -13,4 +13,4 @@ project ("UtilityLib")
 # Include sub-projects.
 add_subdirectory ("UtilityLib")
 add_subdirectory ("TftpServer")
-add_subdirectory ("TftpClient")
+add_subdirectory ("TftpClientLib")
