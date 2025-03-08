@@ -1,7 +1,7 @@
 #ifndef TFTPCLIENTCLS_H
 #define TFTPCLIENTCLS_H
 
-#include "TftpClientTypePkg.h"
+#include "TftpTypePkg.h"
 #include "SocketPkg.h"
 #include "FilePkg.h"
 #include <cstdint>
