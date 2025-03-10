@@ -468,5 +468,16 @@ namespace UtilityLib
 
             return true;
         }
+        bool IsIntegral(const std::string& str)
+        {
+            uint64_t val = 0;
+            StringError result = StringToIntegral<uint64_t>(str, 0, str.size(), val);
+
+            if (result == StringError::Success)
+            {
+                return true;
+            }
+            return false;
+        }
     };
 };

@@ -8,14 +8,17 @@
 #include <charconv>
 #include <concepts>
 
-#include "ErrorPkg.h"
-
-using namespace UtilityLib::Error;
-
 namespace UtilityLib
 {
     namespace String
     {
+        enum class StringError
+        {
+            Success = 0,
+            InvalidArgument,
+            OutOfRange
+        };
+
         // Divide()
         // 
         // Summary:
@@ -320,14 +323,14 @@ namespace UtilityLib
         // Returns:
         // UtilityLib::Error::ErrorEnum
         template<std::integral T>
-        ErrorEnum StringToIntegral(const std::string& str, size_t offset, size_t count, T& value, int32_t base = 10)
+        StringError StringToIntegral(const std::string& str, size_t offset, size_t count, T& value, int32_t base = 10)
         {
             if (offset + count > str.size())
             {
-                return ErrorEnum::InvalidArgument;
+                return StringError::InvalidArgument;
             }
 
-            ErrorEnum result = ErrorEnum::Success;
+            StringError result = StringError::Success;
 
             const char* start = str.data() + offset;
             const char* end = str.data() + offset + count;
@@ -336,11 +339,11 @@ namespace UtilityLib
 
             if (conversionResult.ec == std::errc::invalid_argument)
             {
-                result = ErrorEnum::InvalidArgument;
+                result = StringError::InvalidArgument;
             }
             else if (conversionResult.ec == std::errc::result_out_of_range)
             {
-                result = ErrorEnum::OutOfRange;
+                result = StringError::OutOfRange;
             }
 
             return result;
@@ -356,6 +359,17 @@ namespace UtilityLib
         // Returns:
         // bool
         bool ValidateIpAddress(const std::string& ipAddress);
+        // IsIntegral()
+        // 
+        // Summary:
+        // Checks if the provided string is an integral number
+        //
+        // Arguments:
+        // const std::string& str  --- In
+        //
+        // Returns:
+        // bool
+        bool IsIntegral(const std::string& str);
     };
 };
 
