@@ -9,13 +9,10 @@
 #include <ws2tcpip.h>
 
 #include <string>
-#include <vector>
+#include <variant>
 #include <mutex>
 
 #include "StringPkg.h"
-#include "ErrorPkg.h"
-
-using namespace UtilityLib::Error;
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -28,7 +25,44 @@ namespace UtilityLib
             Blocking = 0,
             NonBlocking = 1
         };
-        class SocketCommonCls : public WSAErrorCls
+        enum class WinsockError
+        {
+            Success = 0,
+            InvalidIpAddress,
+            InvalidPort,
+            BufferTooLong,
+            NotInitialized,
+            OutOfMemory,
+            CheckLastWinsockError,
+        };
+
+        class WinsockInitializerCls
+        {
+        private:
+            static std::mutex Mutex;
+            static uint32_t InstanceCount;
+
+        public:
+            static int GetInstanceCount()
+            {
+                std::lock_guard<std::mutex> lock(Mutex);
+                return InstanceCount;
+            }
+            static void IncrementInstanceCount()
+            {
+                std::lock_guard<std::mutex> lock(Mutex);
+                InstanceCount++;
+            }
+            static void DecrementInstanceCount()
+            {
+                std::lock_guard<std::mutex> lock(Mutex);
+                if (InstanceCount > 0)
+                    InstanceCount--;
+            }
+        };
+
+        // Common methods for all classes
+        class SocketCommonCls
         {
         protected:
             SOCKET Sock;
@@ -36,51 +70,76 @@ namespace UtilityLib
             addrinfo* AddressInfoResults;
             std::string IpAddress;
             std::string Port;
+            int LastWinsockError;
 
-        public:
             SocketCommonCls();
-            SocketCommonCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
-            ~SocketCommonCls();
-            ErrorEnum InitializeWinsock();
-            ErrorEnum CleanupWinsock();
             void SetHints(const addrinfo& hints);
-            void SetIpAddress(const std::string& ipAddress);
-            void SetPort(const std::string& port);
-            ErrorEnum CreateSocket();
-            ErrorEnum CloseSocket();
-            ErrorEnum GetAddressInfo();
-            ErrorEnum GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
-            ErrorEnum Recv(std::string& buffer, size_t bufferLength);
-            ErrorEnum Send(const std::string& buffer, size_t& bytesSent);
-            ErrorEnum SetBlockingMode(BlockingMode mode);
-            virtual ErrorEnum SendTo(const std::string& buffer, size_t& bytesSent) = 0;
-            virtual ErrorEnum RecvFrom(std::string& buffer, size_t bufferLength) = 0;
-            //virtual ErrorEnum SendTo(const char* buffer, size_t bufferLength, size_t& bytesSent) = 0;
-        };
-        class SocketClientCls : public SocketCommonCls
-        {
+            bool SetIpAddress(const std::string& ipAddress);
+            bool SetPort(const std::string& port);
+
+            SocketCommonCls(SocketCommonCls&& other) noexcept;
+            SocketCommonCls& operator=(SocketCommonCls&& other) noexcept;
+
         public:
-            SocketClientCls();
-            SocketClientCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
-
-            ErrorEnum Connect(); 
-            ErrorEnum SendTo(const std::string& buffer, size_t& bytesSent);
-            ErrorEnum RecvFrom(std::string& buffer, size_t bufferLength);
-            ErrorEnum SendTo(const char* buffer, size_t bufferLength, size_t& bytesSent);
+            SOCKET GetSocket() const;
+            addrinfo GetHints() const;
+            addrinfo* GetAddressInfoResults() const;
+            std::string GetIpAddress() const;
+            std::string GetPort() const;
+            int GetLastWinsockError() const;
+            
+            ~SocketCommonCls();
+            WinsockError InitializeWinsock();
+            WinsockError CleanupWinsock();
+            WinsockError CloseSocket();
+            WinsockError SetBlockingMode(BlockingMode mode);
+            WinsockError GetAddressInfo();
+            WinsockError CreateSocket(); 
         };
-        class SocketServerCls : public SocketCommonCls
+
+        // Common methods for UDP Server and Client
+        class UdpCommonCls : public SocketCommonCls
         {
+        protected:
+            UdpCommonCls();
+
         public:
-            sockaddr_in RemoteAddress;
+            static std::variant<WinsockError, UdpCommonCls> Initialize(
+                const addrinfo& hints, 
+                const std::string& ipAddress, 
+                const std::string& port, 
+                BlockingMode mode = BlockingMode::Blocking);
 
-            SocketServerCls();
-            SocketServerCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port);
+            UdpCommonCls(UdpCommonCls&& other) noexcept;
+            UdpCommonCls& operator=(UdpCommonCls&& other) noexcept;
 
-            ErrorEnum Bind();
-            ErrorEnum Listen();
-            ErrorEnum Accept();
-            ErrorEnum SendTo(const std::string& buffer, size_t& bytesSent);
-            ErrorEnum RecvFrom(std::string& buffer, size_t bufferLength);
+            WinsockError RecvFrom(std::string& buffer, size_t bufferLen, size_t& recvByteCount);
+            WinsockError SendTo(const std::string& buffer, size_t bufferLen, size_t& sentByteCount);
+        };
+
+        // UDP Client does not need anything else, UdpCommonCls can be used as UdpClientCls directly
+        typedef UdpCommonCls UdpClientCls;
+
+        // UDP Server
+        class UdpServerCls : public UdpCommonCls
+        {
+        private:
+            UdpServerCls();
+
+            UdpServerCls(UdpCommonCls&& other) noexcept;
+            UdpServerCls& operator=(UdpCommonCls&& other) noexcept;
+
+        public:
+            static std::variant<WinsockError, UdpServerCls> Initialize(
+                const addrinfo& hints,
+                const std::string& ipAddress,
+                const std::string& port,
+                BlockingMode mode = BlockingMode::Blocking);
+
+            UdpServerCls(UdpServerCls&& other) noexcept;
+            UdpServerCls& operator=(UdpServerCls&& other) noexcept;
+
+            WinsockError Bind();
         };
     };
 };

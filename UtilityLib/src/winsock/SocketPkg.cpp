@@ -4,22 +4,15 @@ namespace UtilityLib
 {
     namespace Network
     {
+        uint32_t WinsockInitializerCls::InstanceCount = 0;
+
+        
         SocketCommonCls::SocketCommonCls() :
-            WSAErrorCls(),
             Sock(INVALID_SOCKET),
             AddressInfoResults(nullptr),
-            Hints{}
-        {
-        }
-        SocketCommonCls::SocketCommonCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) : 
-            WSAErrorCls(), 
-            Sock(INVALID_SOCKET),
-            Hints(hints),
-            IpAddress(ipAddress),
-            Port(port),
-            AddressInfoResults(nullptr)
-        {
-        }
+            LastWinsockError(0),
+            Hints{ 0 }
+        { }
         SocketCommonCls::~SocketCommonCls()
         {
             if (AddressInfoResults != nullptr)
@@ -29,442 +22,394 @@ namespace UtilityLib
 
             if (Sock != INVALID_SOCKET)
             {
-                CloseSocket();
+                closesocket(Sock);
             }
-            
+
             CleanupWinsock();
-        }
-        ErrorEnum SocketCommonCls::InitializeWinsock()
-        {
-            ErrorEnum result = ErrorEnum::Success;
-
-            WSADATA wsaData;
-            int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-            if (iResult != 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                result = ErrorEnum::WinsockError;
-            }
-
-            return result;
-        }
-        ErrorEnum SocketCommonCls::CleanupWinsock()
-        {
-            ErrorEnum result = ErrorEnum::Success;
-            
-            int iResult = WSACleanup();
-            if (iResult == SOCKET_ERROR)
-            {
-                SetLastWsaError(WSAGetLastError());
-                result = ErrorEnum::WinsockError;
-            }
-
-            return result;
         }
         void SocketCommonCls::SetHints(const addrinfo& hints)
         {
             Hints = hints;
         }
-        void SocketCommonCls::SetIpAddress(const std::string& ipAddress)
+        bool SocketCommonCls::SetIpAddress(const std::string& ipAddress)
         {
-            IpAddress = ipAddress;
-        }
-        void SocketCommonCls::SetPort(const std::string& port)
-        {
-            Port = port;
-        }
-        ErrorEnum SocketCommonCls::CreateSocket()
-        {
-            if (AddressInfoResults == nullptr)
+            bool result = UtilityLib::String::ValidateIpAddress(ipAddress);
+            if (result)
             {
-                return ErrorEnum::WinsockCallGetAddressInfo;
+                IpAddress = ipAddress;
             }
-
-            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
+            return result;
+        }
+        bool SocketCommonCls::SetPort(const std::string& port)
+        {
+            bool result = UtilityLib::String::IsIntegral(port);
+            if (result)
             {
-                Sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-
+                Port = port;
+            }
+            return result;
+        }
+        SOCKET SocketCommonCls::GetSocket() const
+        {
+            return Sock;
+        }
+        addrinfo SocketCommonCls::GetHints() const
+        {
+            return Hints;
+        }
+        addrinfo* SocketCommonCls::GetAddressInfoResults() const
+        {
+            return AddressInfoResults;
+        }
+        std::string SocketCommonCls::GetIpAddress() const
+        {
+            return IpAddress;
+        }
+        std::string SocketCommonCls::GetPort() const
+        {
+            return Port;
+        }
+        int SocketCommonCls::GetLastWinsockError() const
+        {
+            return LastWinsockError;
+        }
+        SocketCommonCls::SocketCommonCls(SocketCommonCls&& other) noexcept :
+            Sock(other.Sock),
+            Hints(other.Hints),
+            AddressInfoResults(other.AddressInfoResults),
+            LastWinsockError(other.LastWinsockError),
+            IpAddress(std::move(other.IpAddress)),
+            Port(std::move(other.Port))
+        {
+            other.Sock = INVALID_SOCKET;
+            other.AddressInfoResults = nullptr;
+        }
+        SocketCommonCls& SocketCommonCls::operator=(SocketCommonCls&& other) noexcept
+        {
+            if (this != &other)
+            {
+                // Free current resources
                 if (Sock != INVALID_SOCKET)
                 {
-                    return ErrorEnum::Success;
+                    closesocket(Sock);
                 }
+                if (AddressInfoResults != nullptr)
+                {
+                    freeaddrinfo(AddressInfoResults);
+                }
+
+                // Move resources
+                Sock = other.Sock;
+                Hints = other.Hints;
+                AddressInfoResults = other.AddressInfoResults;
+                LastWinsockError = other.LastWinsockError;
+                IpAddress = std::move(other.IpAddress);
+                Port = std::move(other.Port);
+
+                // Reset 'other' to a safe state
+                other.Sock = INVALID_SOCKET;
+                other.AddressInfoResults = nullptr;
             }
 
-            SetLastWsaError(WSAGetLastError());
-            return ErrorEnum::WinsockError;
+            return *this;
         }
-        ErrorEnum SocketCommonCls::CloseSocket()
+        WinsockError SocketCommonCls::InitializeWinsock()
         {
-            ErrorEnum result = ErrorEnum::Success;
-            int iResult = closesocket(Sock);
+            WinsockError result = WinsockError::Success;
 
-            if (iResult != 0)
+            if (WinsockInitializerCls::GetInstanceCount() == 0)
             {
-                SetLastWsaError(WSAGetLastError());
-                result = ErrorEnum::WinsockError;
-            }
-            else
-            {
-                Sock = INVALID_SOCKET;
+                WSADATA wsaData;
+                int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+                if (iResult == SOCKET_ERROR)
+                {
+                    LastWinsockError = WSAGetLastError();
+                    result = WinsockError::CheckLastWinsockError;
+                }
+                else
+                {
+                    WinsockInitializerCls::IncrementInstanceCount();
+                }
             }
 
             return result;
         }
-        ErrorEnum SocketCommonCls::GetAddressInfo()
+        WinsockError SocketCommonCls::CleanupWinsock()
         {
-            if (AddressInfoResults != nullptr)
+            WinsockError result = WinsockError::Success;
+
+            if (WinsockInitializerCls::GetInstanceCount() > 0)
             {
-                freeaddrinfo(AddressInfoResults);
-            }
-
-            int iResult = getaddrinfo(IpAddress.c_str(), Port.c_str(), &Hints, &AddressInfoResults);
-
-            if (iResult != 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketCommonCls::GetAddressInfo(const addrinfo& hints, const std::string& ipAddress, const std::string& port)
-        {
-            Hints = hints;
-            IpAddress = ipAddress;
-            Port = port;
-
-            return GetAddressInfo();
-        }
-        ErrorEnum SocketCommonCls::Recv(std::string& buffer, size_t bufferLength)
-        {
-            buffer.clear();
-
-            if (bufferLength > INT_MAX)
-            {
-                return ErrorEnum::OutOfRange;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            std::string buf(bufferLength, '\0');
-            int iResult = recv(Sock, buf.data(), static_cast<int>(bufferLength), 0);
-
-            if (iResult < 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            if (iResult == 0)
-            {
-                return ErrorEnum::WinsockConnClosed;
-            }
-
-            buffer.assign(buf, static_cast<size_t>(iResult));
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketCommonCls::Send(const std::string& buffer, size_t& bytesSent)
-        {
-            if (buffer.size() > INT_MAX)
-            {
-                return ErrorEnum::OutOfRange;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            int iResult = send(Sock, buffer.c_str(), static_cast<int>(buffer.size()), 0);
-
-            if (iResult < 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                bytesSent = 0;
-                return ErrorEnum::WinsockError;
-            }
-            if (iResult == 0)
-            {
-                bytesSent = 0;
-                return ErrorEnum::WinsockConnClosed;
-            }
-
-            bytesSent = static_cast<size_t>(iResult);
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketCommonCls::SetBlockingMode(BlockingMode mode)
-        {
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            u_long blockingMode = static_cast<u_long>(mode);
-            int iResult = ioctlsocket(Sock, FIONBIO, &blockingMode);
-
-            if (iResult != 0)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            return ErrorEnum::Success;
-        }
-
-
-        SocketClientCls::SocketClientCls() :
-            SocketCommonCls()
-        {
-        }
-        SocketClientCls::SocketClientCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) :
-            SocketCommonCls(hints, ipAddress, port)
-        {
-        }
-        ErrorEnum SocketClientCls::Connect()
-        {
-            if (AddressInfoResults == nullptr)
-            {
-                return ErrorEnum::WinsockCallGetAddressInfo;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
-            {
-                int iResult = connect(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
-
-                if (iResult != SOCKET_ERROR)
+                int iResult = WSACleanup();
+                if (iResult == SOCKET_ERROR)
                 {
-                    return ErrorEnum::Success;
+                    LastWinsockError = WSAGetLastError();
+                    result = WinsockError::CheckLastWinsockError;
+                }
+                else
+                {
+                    WinsockInitializerCls::DecrementInstanceCount();
                 }
             }
 
-            SetLastWsaError(WSAGetLastError());
-            return ErrorEnum::WinsockError;
+            return result;
         }
-        ErrorEnum SocketClientCls::SendTo(const std::string& buffer, size_t& bytesSent)
+        WinsockError SocketCommonCls::CloseSocket()
         {
-            bytesSent = 0;
-            if (buffer.size() > INT_MAX)
+            WinsockError result = WinsockError::Success;
+            if (Sock != INVALID_SOCKET)
             {
-                return ErrorEnum::OutOfRange;
+                int iResult = closesocket(Sock);
+                if (iResult == SOCKET_ERROR)
+                {
+                    LastWinsockError = WSAGetLastError();
+                    result = WinsockError::CheckLastWinsockError;
+                }
+                else
+                {
+                    Sock = INVALID_SOCKET;
+                }
+            }
+            return result;
+        }
+        WinsockError SocketCommonCls::GetAddressInfo()
+        {
+            WinsockError result = WinsockError::Success;
+
+            if (AddressInfoResults != nullptr)
+            {
+                freeaddrinfo(AddressInfoResults);
+                AddressInfoResults = nullptr;
             }
 
-            if (AddressInfoResults == nullptr)
+            int iResult = getaddrinfo(IpAddress.c_str(), Port.c_str(), &Hints, &AddressInfoResults);
+            
+            if (iResult != 0)
             {
-                return ErrorEnum::WinsockCallGetAddressInfo;
+                LastWinsockError = WSAGetLastError();
+                result = WinsockError::CheckLastWinsockError;
             }
 
-            if (Sock == INVALID_SOCKET)
+            return result;
+        }
+        WinsockError SocketCommonCls::CreateSocket()
+        {
+            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
             {
-                return ErrorEnum::WinsockCallCreateSocket;
+                Sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+                if (Sock != INVALID_SOCKET)
+                {
+                    return WinsockError::Success;
+                }
             }
 
-            const char* bufPtr = buffer.c_str();
-            int bufLen = static_cast<int>(buffer.size());
-            const sockaddr* addrPtr = reinterpret_cast<const sockaddr*>(AddressInfoResults->ai_addr);
-            int addrLen = static_cast<int>(sizeof(*addrPtr));
+            LastWinsockError = WSAGetLastError();
+            return WinsockError::CheckLastWinsockError;
+        }
+        WinsockError SocketCommonCls::SetBlockingMode(BlockingMode mode)
+        {
+            u_long blockingMode = static_cast<u_long>(mode);
 
-            int iResult = sendto(Sock, bufPtr, bufLen, 0, addrPtr, addrLen);
+            int iResult = ioctlsocket(Sock, FIONBIO, &blockingMode);
             if (iResult == SOCKET_ERROR)
             {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
             }
 
-            bytesSent = static_cast<size_t>(iResult);
-            return ErrorEnum::Success;
+            return WinsockError::Success;
         }
-        ErrorEnum SocketClientCls::RecvFrom(std::string& buffer, size_t bufferLength)
+
+
+        UdpCommonCls::UdpCommonCls() :
+            SocketCommonCls()
         {
-            buffer.clear();
+        }
+        std::variant<WinsockError, UdpCommonCls> UdpCommonCls::Initialize(
+            const addrinfo& hints, 
+            const std::string& ipAddress, 
+            const std::string& port, 
+            BlockingMode blockingMode)
+        {
+            UdpCommonCls udp;
 
-            if (bufferLength > INT_MAX)
+            udp.SetHints(hints);
+            if (udp.SetIpAddress(ipAddress) == false)
             {
-                return ErrorEnum::OutOfRange;
+                return WinsockError::InvalidIpAddress;
+            }
+            if (udp.SetPort(port) == false)
+            {
+                return WinsockError::InvalidPort;
             }
 
-            if (AddressInfoResults == nullptr)
+            WinsockError result = udp.InitializeWinsock();
+            if (result != WinsockError::Success)
             {
-                return ErrorEnum::WinsockCallGetAddressInfo;
+                return result;
             }
 
-            if (Sock == INVALID_SOCKET)
+            result = udp.GetAddressInfo();
+            if (result != WinsockError::Success)
             {
-                return ErrorEnum::WinsockCallCreateSocket;
+                return result;
             }
 
-            std::string buf(bufferLength, '\0');
-            char* bufPtr = buf.data();
-            int bufLen = static_cast<int>(bufferLength);
+            result = udp.CreateSocket();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            result = udp.SetBlockingMode(blockingMode);
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            return udp;
+        }
+        UdpCommonCls::UdpCommonCls(UdpCommonCls&& other) noexcept :
+            SocketCommonCls(std::move(other))
+        {
+        }
+        UdpCommonCls& UdpCommonCls::operator=(UdpCommonCls&& other) noexcept
+        {
+            SocketCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        WinsockError UdpCommonCls::RecvFrom(std::string& buffer, size_t bufferLen, size_t& recvByteCount)
+        {
+            if (bufferLen > INT_MAX)
+            {
+                return WinsockError::BufferTooLong;
+            }
+
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+
+            char* bufPtr = new (std::nothrow) char[bufferLen];
+            if (bufPtr == nullptr)
+            {
+                return WinsockError::OutOfMemory;
+            }
+
+            int bufLen = static_cast<int>(bufferLen);
             sockaddr* addrPtr = reinterpret_cast<sockaddr*>(AddressInfoResults->ai_addr);
             int addrLen = static_cast<int>(sizeof(*addrPtr));
 
             int iResult = recvfrom(Sock, bufPtr, bufLen, 0, addrPtr, &addrLen);
             if (iResult == SOCKET_ERROR)
             {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
+                LastWinsockError = WSAGetLastError();
+                delete[] bufPtr;
+                return WinsockError::CheckLastWinsockError;
             }
 
-            buffer.assign(bufPtr, static_cast<size_t>(iResult));
-            return ErrorEnum::Success;
+            recvByteCount = static_cast<size_t>(iResult);
+            buffer.assign(bufPtr, recvByteCount);
+
+            delete[] bufPtr;
+            return WinsockError::Success;
         }
-        ErrorEnum SocketClientCls::SendTo(const char* buffer, size_t bufferLength, size_t& bytesSent)
+        WinsockError UdpCommonCls::SendTo(const std::string& buffer, size_t bufferLen, size_t& sentByteCount)
         {
-            bytesSent = 0;
-            if (bufferLength > INT_MAX)
+            sentByteCount = 0;
+            if (bufferLen > INT_MAX)
             {
-                return ErrorEnum::OutOfRange;
+                return WinsockError::BufferTooLong;
+            }
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
             }
 
-            if (AddressInfoResults == nullptr)
-            {
-                return ErrorEnum::WinsockCallGetAddressInfo;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            const sockaddr* addrPtr = reinterpret_cast<const sockaddr*>(AddressInfoResults->ai_addr);
+            const char* bufPtr = buffer.c_str();
+            int bufLen = static_cast<int>(bufferLen);
+            sockaddr* addrPtr = reinterpret_cast<sockaddr*>(AddressInfoResults->ai_addr);
             int addrLen = static_cast<int>(sizeof(*addrPtr));
 
-            int iResult = sendto(Sock, buffer, static_cast<int>(bufferLength), 0, addrPtr, addrLen);
+            int iResult = sendto(Sock, buffer.c_str(), bufLen, 0, addrPtr, addrLen);
             if (iResult == SOCKET_ERROR)
             {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            
+            sentByteCount = static_cast<size_t>(iResult);
+            return WinsockError::Success;
+        }
+
+
+        UdpServerCls::UdpServerCls() :
+            UdpCommonCls()
+        {
+        }
+        std::variant<WinsockError, UdpServerCls> UdpServerCls::Initialize(
+            const addrinfo& hints,
+            const std::string& ipAddress,
+            const std::string& port,
+            BlockingMode blockingMode)
+        {
+            auto initResult = UdpCommonCls::Initialize(hints, ipAddress, port, blockingMode);
+
+            if (std::holds_alternative<WinsockError>(initResult))
+            {
+                return std::get<WinsockError>(initResult);
             }
 
-            bytesSent = static_cast<size_t>(iResult);
-            return ErrorEnum::Success;
-        }
+            UdpServerCls udpServer = std::move(std::get<UdpCommonCls>(initResult));
 
+            WinsockError result = udpServer.Bind();
 
-        SocketServerCls::SocketServerCls() :
-            SocketCommonCls(),
-            RemoteAddress{}
-        {
-        }
-        SocketServerCls::SocketServerCls(const addrinfo& hints, const std::string& ipAddress, const std::string& port) :
-            SocketCommonCls(hints, ipAddress, port),
-            RemoteAddress{}
-        {
-        }
-        ErrorEnum SocketServerCls::Bind()
-        {
-            if (AddressInfoResults == nullptr)
+            if (result != WinsockError::Success)
             {
-                return ErrorEnum::WinsockCallGetAddressInfo;
+                return result;
             }
-            if (Sock == INVALID_SOCKET)
+
+            return udpServer;
+        }
+        UdpServerCls::UdpServerCls(UdpCommonCls&& other) noexcept :
+            UdpCommonCls(std::move(other))
+        {
+        }
+        UdpServerCls& UdpServerCls::operator=(UdpCommonCls&& other) noexcept
+        {
+            UdpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        UdpServerCls::UdpServerCls(UdpServerCls&& other) noexcept :
+            UdpCommonCls(std::move(other))
+        {
+        }
+        UdpServerCls& UdpServerCls::operator=(UdpServerCls&& other) noexcept
+        {
+            UdpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        WinsockError UdpServerCls::Bind()
+        {
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
             {
-                return ErrorEnum::WinsockCallCreateSocket;
+                return WinsockError::NotInitialized;
             }
 
             for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
             {
                 int iResult = bind(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
-
                 if (iResult != SOCKET_ERROR)
                 {
-                    return ErrorEnum::Success;
+                    return WinsockError::Success;
                 }
             }
 
-            SetLastWsaError(WSAGetLastError());
-            return ErrorEnum::WinsockError;
+            LastWinsockError = WSAGetLastError();
+            return WinsockError::CheckLastWinsockError;
         }
-        ErrorEnum SocketServerCls::Listen()
-        {
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            int iResult = listen(Sock, SOMAXCONN);
-
-            if (iResult == SOCKET_ERROR)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketServerCls::Accept()
-        {
-            SOCKET clientSock = accept(Sock, nullptr, nullptr);
-
-            if (clientSock == INVALID_SOCKET)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketServerCls::SendTo(const std::string& buffer, size_t& bytesSent)
-        {
-            bytesSent = 0;
-            if (buffer.size() > INT_MAX)
-            {
-                return ErrorEnum::OutOfRange;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            const char* bufPtr = buffer.c_str();
-            int bufLen = static_cast<int>(buffer.size());
-            const sockaddr* addrPtr = reinterpret_cast<const sockaddr*>(&RemoteAddress);
-            int addrLen = static_cast<int>(sizeof(RemoteAddress));
-
-            int iResult = sendto(Sock, bufPtr, bufLen, 0, addrPtr, addrLen);
-            if (iResult == SOCKET_ERROR)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-
-            bytesSent = static_cast<size_t>(iResult);
-            return ErrorEnum::Success;
-        }
-        ErrorEnum SocketServerCls::RecvFrom(std::string& buffer, size_t bufferLength)
-        {
-            buffer.clear();
-
-            if (bufferLength > INT_MAX)
-            {
-                return ErrorEnum::OutOfRange;
-            }
-
-            if (Sock == INVALID_SOCKET)
-            {
-                return ErrorEnum::WinsockCallCreateSocket;
-            }
-
-            std::string buf(bufferLength, '\0');
-            char* bufPtr = buf.data();
-            int bufLen = static_cast<int>(bufferLength);
-            sockaddr* addrPtr = reinterpret_cast<sockaddr*>(&RemoteAddress);
-            int addrLen = static_cast<int>(sizeof(RemoteAddress));
-
-            int iResult = recvfrom(Sock, bufPtr, bufLen, 0, addrPtr, &addrLen);
-            if (iResult == SOCKET_ERROR)
-            {
-                SetLastWsaError(WSAGetLastError());
-                return ErrorEnum::WinsockError;
-            }
-
-            buffer.assign(buf.c_str(), static_cast<size_t>(iResult));
-            return ErrorEnum::Success;
-        }
-    };
-};
+    }; // namespace Network
+}; // namespace UtilityLib

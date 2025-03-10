@@ -460,9 +460,9 @@ namespace UtilityLib
             for (const auto& part : ipParts)
             {
                 uint32_t ipPart = 0;
-                ErrorEnum result = StringToIntegral<uint32_t>(part, static_cast<size_t>(0), part.size(), ipPart);
+                StringError result = StringToIntegral<uint32_t>(part, static_cast<size_t>(0), part.size(), ipPart);
 
-                if (result != ErrorEnum::Success) return false;
+                if (result != StringError::Success) return false;
                 if (ipPart > 255) return false;
             }
 

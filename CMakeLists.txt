@@ -12,4 +12,4 @@ project ("UtilityLib")
 
 # Include sub-projects.
 add_subdirectory ("UtilityLib")
-add_subdirectory ("TftpLib")
+#add_subdirectory ("TftpLib")
