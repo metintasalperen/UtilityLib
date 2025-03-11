@@ -5,6 +5,7 @@ namespace UtilityLib
     namespace Network
     {
         uint32_t WinsockInitializerCls::InstanceCount = 0;
+        std::mutex WinsockInitializerCls::Mutex;
 
         
         SocketCommonCls::SocketCommonCls() :
@@ -410,6 +411,268 @@ namespace UtilityLib
 
             LastWinsockError = WSAGetLastError();
             return WinsockError::CheckLastWinsockError;
+        }
+
+
+        TcpCommonCls::TcpCommonCls() :
+            SocketCommonCls()
+        {
+        }
+        std::variant<WinsockError, TcpCommonCls> TcpCommonCls::Initialize(
+            const addrinfo& hints,
+            const std::string& ipAddress,
+            const std::string& port,
+            BlockingMode blockingMode)
+        {
+            TcpCommonCls tcp;
+            tcp.SetHints(hints);
+            if (tcp.SetIpAddress(ipAddress) == false)
+            {
+                return WinsockError::InvalidIpAddress;
+            }
+            if (tcp.SetPort(port) == false)
+            {
+                return WinsockError::InvalidPort;
+            }
+            WinsockError result = tcp.InitializeWinsock();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            result = tcp.GetAddressInfo();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            result = tcp.CreateSocket();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            result = tcp.SetBlockingMode(blockingMode);
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            return tcp;
+        }
+        TcpCommonCls::TcpCommonCls(TcpCommonCls&& other) noexcept :
+            SocketCommonCls(std::move(other))
+        {
+        }
+        TcpCommonCls& TcpCommonCls::operator=(TcpCommonCls&& other) noexcept
+        {
+            SocketCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        WinsockError TcpCommonCls::Send(const std::string& buffer, size_t bufferLen, size_t& sentByteCount)
+        {
+            sentByteCount = 0;
+            if (bufferLen > INT_MAX)
+            {
+                return WinsockError::BufferTooLong;
+            }
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            const char* bufPtr = buffer.c_str();
+            int bufLen = static_cast<int>(bufferLen);
+            int iResult = send(Sock, bufPtr, bufLen, 0);
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            sentByteCount = static_cast<size_t>(iResult);
+            return WinsockError::Success;
+        }
+        WinsockError TcpCommonCls::Recv(std::string& buffer, size_t bufferLen, size_t& recvByteCount)
+        {
+            if (bufferLen > INT_MAX)
+            {
+                return WinsockError::BufferTooLong;
+            }
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            char* bufPtr = new (std::nothrow) char[bufferLen];
+            if (bufPtr == nullptr)
+            {
+                return WinsockError::OutOfMemory;
+            }
+            int bufLen = static_cast<int>(bufferLen);
+            int iResult = recv(Sock, bufPtr, bufLen, 0);
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                delete[] bufPtr;
+                return WinsockError::CheckLastWinsockError;
+            }
+            recvByteCount = static_cast<size_t>(iResult);
+            buffer.assign(bufPtr, recvByteCount);
+            delete[] bufPtr;
+            return WinsockError::Success;
+        }
+
+
+        TcpClientCls::TcpClientCls() :
+            TcpCommonCls()
+        {
+        }
+        std::variant<WinsockError, TcpClientCls> TcpClientCls::Initialize(
+            const addrinfo& hints,
+            const std::string& ipAddress,
+            const std::string& port,
+            BlockingMode blockingMode)
+        {
+            auto initResult = TcpCommonCls::Initialize(hints, ipAddress, port, blockingMode);
+            if (std::holds_alternative<WinsockError>(initResult))
+            {
+                return std::get<WinsockError>(initResult);
+            }
+            TcpClientCls tcpClient = std::move(std::get<TcpCommonCls>(initResult));
+            WinsockError result = tcpClient.Connect();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            return tcpClient;
+        }
+        TcpClientCls::TcpClientCls(TcpCommonCls&& other) noexcept :
+            TcpCommonCls(std::move(other))
+        {
+        }
+        TcpClientCls& TcpClientCls::operator=(TcpCommonCls&& other) noexcept
+        {
+            TcpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        TcpClientCls::TcpClientCls(TcpClientCls&& other) noexcept :
+            TcpCommonCls(std::move(other))
+        {
+        }
+        TcpClientCls& TcpClientCls::operator=(TcpClientCls&& other) noexcept
+        {
+            TcpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        WinsockError TcpClientCls::Connect()
+        {
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
+            {
+                int iResult = connect(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+                if (iResult != SOCKET_ERROR)
+                {
+                    return WinsockError::Success;
+                }
+            }
+            return WinsockError::Success;
+        }
+
+
+        TcpServerCls::TcpServerCls() :
+            TcpCommonCls()
+        {
+        }
+        std::variant<WinsockError, TcpServerCls> TcpServerCls::Initialize(
+            const addrinfo& hints,
+            const std::string& ipAddress,
+            const std::string& port,
+            BlockingMode blockingMode)
+        {
+            auto initResult = TcpCommonCls::Initialize(hints, ipAddress, port, blockingMode);
+            if (std::holds_alternative<WinsockError>(initResult))
+            {
+                return std::get<WinsockError>(initResult);
+            }
+            TcpServerCls tcpServer = std::move(std::get<TcpCommonCls>(initResult));
+            WinsockError result = tcpServer.Bind();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+            return tcpServer;
+        }
+        TcpServerCls::TcpServerCls(TcpCommonCls&& other) noexcept :
+            TcpCommonCls(std::move(other))
+        {
+        }
+        TcpServerCls& TcpServerCls::operator=(TcpCommonCls&& other) noexcept
+        {
+            TcpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        TcpServerCls::TcpServerCls(TcpServerCls&& other) noexcept :
+            TcpCommonCls(std::move(other))
+        {
+        }
+        TcpServerCls& TcpServerCls::operator=(TcpServerCls&& other) noexcept
+        {
+            TcpCommonCls::operator=(std::move(other));
+            return *this;
+        }
+        WinsockError TcpServerCls::Bind()
+        {
+            if (AddressInfoResults == nullptr ||
+                Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
+            {
+                int iResult = bind(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
+                if (iResult != SOCKET_ERROR)
+                {
+                    return WinsockError::Success;
+                }
+            }
+            return WinsockError::CheckLastWinsockError;
+        }
+        WinsockError TcpServerCls::Listen(int backlog)
+        {
+            if (Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            int iResult = listen(Sock, backlog);
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            return WinsockError::Success;
+        }
+        std::variant<WinsockError, TcpCommonCls> TcpServerCls::Accept()
+        {
+            if (Sock == INVALID_SOCKET)
+            {
+                return WinsockError::NotInitialized;
+            }
+            SOCKET clientSock = accept(Sock, nullptr, nullptr);
+            if (clientSock == INVALID_SOCKET)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+
+            auto client = TcpCommonCls::Initialize(Hints, IpAddress, Port);
+            return WinsockError::Success;
+        }
+
+
+        TcpClientHandlerCls::TcpClientHandlerCls(SOCKET clientHandlerSock) :
+            TcpCommonCls()
+        {
+            Sock = clientHandlerSock;
         }
     }; // namespace Network
 }; // namespace UtilityLib

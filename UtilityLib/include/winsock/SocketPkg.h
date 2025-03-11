@@ -81,6 +81,9 @@ namespace UtilityLib
             SocketCommonCls& operator=(SocketCommonCls&& other) noexcept;
 
         public:
+            ~SocketCommonCls();
+
+        protected:
             SOCKET GetSocket() const;
             addrinfo GetHints() const;
             addrinfo* GetAddressInfoResults() const;
@@ -88,7 +91,6 @@ namespace UtilityLib
             std::string GetPort() const;
             int GetLastWinsockError() const;
             
-            ~SocketCommonCls();
             WinsockError InitializeWinsock();
             WinsockError CleanupWinsock();
             WinsockError CloseSocket();
@@ -125,7 +127,6 @@ namespace UtilityLib
         {
         private:
             UdpServerCls();
-
             UdpServerCls(UdpCommonCls&& other) noexcept;
             UdpServerCls& operator=(UdpCommonCls&& other) noexcept;
 
@@ -139,7 +140,81 @@ namespace UtilityLib
             UdpServerCls(UdpServerCls&& other) noexcept;
             UdpServerCls& operator=(UdpServerCls&& other) noexcept;
 
+        private:
             WinsockError Bind();
+        };
+
+        // Common methods for TCP Server and Client
+        class TcpCommonCls : public SocketCommonCls
+        {
+        protected:
+            TcpCommonCls();
+
+        public:
+            static std::variant<WinsockError, TcpCommonCls> Initialize(
+                const addrinfo& hints,
+                const std::string& ipAddress,
+                const std::string& port,
+                BlockingMode mode = BlockingMode::Blocking);
+
+            TcpCommonCls(TcpCommonCls&& other) noexcept;
+            TcpCommonCls& operator=(TcpCommonCls&& other) noexcept;
+
+            WinsockError Send(const std::string& buffer, size_t bufferLen, size_t& sentByteCount);
+            WinsockError Recv(std::string& buffer, size_t bufferLen, size_t& recvByteCount);
+        };
+
+        class TcpClientCls : public TcpCommonCls
+        {
+        private:
+            TcpClientCls();
+            TcpClientCls(TcpCommonCls&& other) noexcept;
+            TcpClientCls& operator=(TcpCommonCls&& other) noexcept;
+
+        public:
+            static std::variant<WinsockError, TcpClientCls> Initialize(
+                const addrinfo& hints,
+                const std::string& ipAddress,
+                const std::string& port,
+                BlockingMode mode = BlockingMode::Blocking);
+            TcpClientCls(TcpClientCls&& other) noexcept;
+            TcpClientCls& operator=(TcpClientCls&& other) noexcept;
+
+        private:
+            WinsockError Connect();
+        };
+
+        class TcpServerCls : public TcpCommonCls
+        {
+        private:
+            TcpServerCls();
+            TcpServerCls(TcpCommonCls&& other) noexcept;
+            TcpServerCls& operator=(TcpCommonCls&& other) noexcept;
+
+        public:
+            static std::variant<WinsockError, TcpServerCls> Initialize(
+                const addrinfo& hints,
+                const std::string& ipAddress,
+                const std::string& port,
+                BlockingMode mode = BlockingMode::Blocking);
+            TcpServerCls(TcpServerCls&& other) noexcept;
+            TcpServerCls& operator=(TcpServerCls&& other) noexcept;
+
+        private:
+            WinsockError Bind();
+
+        public:
+            WinsockError Listen(int backlog);
+            std::variant<WinsockError, TcpCommonCls> Accept();
+        };
+
+        class TcpClientHandlerCls : public TcpCommonCls
+        {
+        public:
+            TcpClientHandlerCls(SOCKET clientHandlerSock);
+
+        private:
+            TcpClientHandlerCls();
         };
     };
 };
