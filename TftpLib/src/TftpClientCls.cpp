@@ -1,103 +1,84 @@
 #include "TftpClientCls.h"
 
+using namespace UtilityLib::Network;
+
 namespace Tftp
 {
-    TftpClientCls::TftpClientCls() :
-        Socket(std::make_unique<UtilityLib::Network::SocketClientCls>())
+    std::variant<TftpError, TftpClientCls> TftpClientCls::Initialize(const std::string& ipAddress)
     {
         addrinfo hints{};
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
 
-        Socket->SetHints(hints);
-        Socket->SetPort(TFTP_PORT);
-    }
-    TftpClientCls::TftpClientCls(const std::string& ipAddress) :
-        TftpClientCls()
-    {
-        Socket->SetIpAddress(ipAddress);
-    }
-    std::optional<TftpClientCls> TftpClientCls::Initialize(const std::string& ipAddress)
-    {
-        bool isIpAddressValid = UtilityLib::String::ValidateIpAddress(ipAddress);
-        if (!isIpAddressValid) return std::nullopt;
+        auto initUdp = UdpClientCls::Initialize(hints, ipAddress, TFTP_PORT);
 
-        TftpClientCls tftpClient(ipAddress);
-
-        ErrorEnum result = tftpClient.Socket->InitializeWinsock();
-        if (result != ErrorEnum::Success)
+        if (std::holds_alternative<WinsockError>(initUdp) == true)
         {
-            return std::nullopt;
+            WinsockError& result = std::get<WinsockError>(initUdp);
+            if (result == WinsockError::InvalidIpAddress)
+            {
+                return TftpError::InvalidIpAddress;
+            }
+            else
+            {
+                return TftpError::WinsockError;
+            }
         }
 
-        result = tftpClient.Socket->GetAddressInfo();
-        if (result != ErrorEnum::Success)
-        {
-            return std::nullopt;
-        }
-
-        result = tftpClient.Socket->CreateSocket();
-        if (result != ErrorEnum::Success)
-        {
-            return std::nullopt;
-        }
-
-        tftpClient.Socket->SetBlockingMode(UtilityLib::Network::BlockingMode::Blocking);
-
-        return std::make_optional<TftpClientCls>(std::move(tftpClient));
+        TftpClientCls tftpClient(std::move(std::get<UdpClientCls>(initUdp)));
+        return tftpClient;
     }
-    bool TftpClientCls::ChangeIpAddress(const std::string& ipAddress)
+    TftpClientCls::TftpClientCls(UdpClientCls&& udpClient) noexcept :
+        UdpClient(std::move(udpClient))
+    { }
+    TftpClientCls::TftpClientCls(TftpClientCls&& other) noexcept :
+        UdpClient(std::move(other.UdpClient))
+    { }
+    TftpClientCls& TftpClientCls::operator=(TftpClientCls&& other) noexcept
     {
-        bool isIpAddressValid = UtilityLib::String::ValidateIpAddress(ipAddress);
-        if (!isIpAddressValid) return false;
-
-        auto newSocket = std::make_unique<UtilityLib::Network::SocketClientCls>();
-
+        UdpClient = std::move(other.UdpClient);
+        return *this;
+    }
+    TftpError TftpClientCls::ChangeIpAddress(const std::string& ipAddress)
+    {
         addrinfo hints{};
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
 
-        newSocket->SetHints(hints);
-        newSocket->SetPort(TFTP_PORT);
-        newSocket->SetIpAddress(ipAddress);
+        auto initUdp = UdpClientCls::Initialize(hints, ipAddress, TFTP_PORT);
 
-        ErrorEnum result = newSocket->InitializeWinsock();
-        if (result != ErrorEnum::Success)
+        if (std::holds_alternative<WinsockError>(initUdp) == true)
         {
-            return false;
+            WinsockError& result = std::get<WinsockError>(initUdp);
+            if (result == WinsockError::InvalidIpAddress)
+            {
+                return TftpError::InvalidIpAddress;
+            }
+            else
+            {
+                return TftpError::WinsockError;
+            }
         }
 
-        result = newSocket->GetAddressInfo();
-        if (result != ErrorEnum::Success)
-        {
-            return false;
-        }
-
-        result = newSocket->CreateSocket();
-        if (result != ErrorEnum::Success)
-        {
-            return false;
-        }
-
-        newSocket->SetBlockingMode(UtilityLib::Network::BlockingMode::Blocking);
-
-        Socket = std::move(newSocket);
-        return true;
+        UdpClient = std::move(std::get<UdpClientCls>(initUdp));
+        return TftpError::Success;
     }
     int TftpClientCls::GetLastWinsockError()
     {
-        return Socket->GetLastWsaError();
+        return UdpClient.GetLastWinsockError();
     }
 
-    TftpErrorCodes TftpClientCls::ReadFile(const std::string& filename, const std::string& pathToSaveFile, Mode mode)
+    TftpError TftpClientCls::ReadFile(const std::string& filename, const std::string& pathToSaveFile, Mode mode)
     {
-        // Send read request packet to server
         std::string readRequestPacket = CreateRrqPacket(filename, mode);
         size_t sentBytes = 0;
-        ErrorEnum result = Socket->SendTo(readRequestPacket.c_str(), readRequestPacket.size(), sentBytes);
-        if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+        WinsockError result = UdpClient.SendTo(readRequestPacket.c_str(), readRequestPacket.size(), sentBytes);
+        if (result != WinsockError::Success)
+        {
+            return TftpError::WinsockError;
+        }
 
         std::string dataPacket;
         std::string ackPacket;
@@ -107,14 +88,13 @@ namespace Tftp
 
         do
         {
-            // Receive data packet from server
-            result = Socket->RecvFrom(dataPacket, MAX_PACKET_SIZE);
-            if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
-
-            recvBytes = dataPacket.size();
+            result = UdpClient.RecvFrom(dataPacket, MAX_PACKET_SIZE, recvBytes);
+            if (result != WinsockError::Success)
+            {
+                return TftpError::WinsockError;
+            }
 
             auto parsedDataPacket = ParsePacket(dataPacket);
-            // Check if the packet is a data packet
             if (std::holds_alternative<Tftp::DataPacketStc>(parsedDataPacket) == true)
             {
                 Tftp::DataPacketStc& data = std::get<Tftp::DataPacketStc>(parsedDataPacket);
@@ -127,10 +107,12 @@ namespace Tftp
                 }
                 
                 ackPacket = CreateAckPacket(data.Block);
-                result = Socket->SendTo(ackPacket.c_str(), ackPacket.size(), sentBytes);
-                if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+                result = UdpClient.SendTo(ackPacket.c_str(), ackPacket.size(), sentBytes);
+                if (result != WinsockError::Success)
+                {
+                    return TftpError::WinsockError;
+                }
             }
-            // Check if the packet is an error packet
             else if (std::holds_alternative<Tftp::ErrorPacketStc>(parsedDataPacket) == true)
             {
                 Tftp::ErrorPacketStc error = std::get<Tftp::ErrorPacketStc>(parsedDataPacket);
@@ -138,7 +120,7 @@ namespace Tftp
             }
             else
             {
-                return TftpErrorCodes::UndefinedResponse;
+                return TftpError::UndefinedResponse;
             }
             
         } while (recvBytes == MAX_PACKET_SIZE);
@@ -148,70 +130,94 @@ namespace Tftp
 
         // Save file to disk
         bool isFileWritten = UtilityLib::FileIO::WriteToFile(pathToSaveFile, fileContent);
-        if (isFileWritten) return TftpErrorCodes::Success;
-        else return TftpErrorCodes::CannotSaveReadFileToDisk;
+        if (isFileWritten)
+        {
+            return TftpError::Success;
+        }
+        else
+        {
+            return TftpError::CannotSaveReadFileToDisk;
+        }
     }
-    TftpErrorCodes TftpClientCls::WriteFile(const std::string& filename, const std::string& pathToFile, Mode mode)
+    TftpError TftpClientCls::WriteFile(const std::string& filename, const std::string& pathToFile, Mode mode)
     {
-        // Create full path
         std::string fullPath = pathToFile;
         bool isEndWithSlash = UtilityLib::String::IsEndWith(fullPath, "\\");
         if (!isEndWithSlash) fullPath += "\\";
         fullPath += filename;
 
-        // If file does not exist, return error
         bool isFileExist = UtilityLib::FileIO::IsFileExist(fullPath);
-        if (!isFileExist) return TftpErrorCodes::FileAtSpecifiedPathNotFound;
+        if (!isFileExist)
+        {
+            return TftpError::FileAtSpecifiedPathNotFound;
+        }
 
-        // Read file content
         std::string fileContent = UtilityLib::FileIO::ReadFromFile(fullPath);
-        // Replace \r\n with \n
         fileContent = UtilityLib::String::ReplaceAll(fileContent, "\r\n", "\n");
-
-        // Divide data to 512 byte blocks
         std::vector dividedData = UtilityLib::String::DivideByLength(fileContent, MAX_DATA_SIZE);
-        // If last block is 512 bytes, add an empty block
-        if (dividedData.back().size() == MAX_DATA_SIZE) dividedData.push_back(std::string());
+        if (dividedData.back().size() == MAX_DATA_SIZE)
+        {
+            dividedData.push_back(std::string());
+        }
 
-        // Send write request packet to TFTP server
         std::string writeRequestPacket = CreateWrqPacket(filename, mode);
         size_t sentBytes = 0;
-        ErrorEnum result = Socket->SendTo(writeRequestPacket.c_str(), writeRequestPacket.size(), sentBytes);
-        if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+        WinsockError result = UdpClient.SendTo(writeRequestPacket.c_str(), writeRequestPacket.size(), sentBytes);
+        if (result != WinsockError::Success)
+        {
+            return TftpError::WinsockError;
+        }
 
-        // Receive acknowledgment packet from server
         std::string ackPacket;
-        result = Socket->RecvFrom(ackPacket, MAX_PACKET_SIZE);
-        if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+        size_t recvBytes = 0;
+        result = UdpClient.RecvFrom(ackPacket, MAX_PACKET_SIZE, recvBytes);
+        if (result != WinsockError::Success)
+        {
+            return TftpError::WinsockError;
+        }
 
-        // Parse acknowledgment packet
         auto parsedAckPacket = ParsePacket(ackPacket);
-        if (std::holds_alternative<Tftp::AckPacketStc>(parsedAckPacket) == false) return TftpErrorCodes::UndefinedResponse;
-        Tftp::AckPacketStc& ack = std::get<Tftp::AckPacketStc>(parsedAckPacket);
-        if (ack.Opcode != Opcode::Acknowledgment || ack.Block != 0) return TftpErrorCodes::UndefinedResponse;
+        if (std::holds_alternative<Tftp::AckPacketStc>(parsedAckPacket) == false)
+        {
+            return TftpError::UndefinedResponse;
+        }
 
-        // Ack received, send data packets to server
+        Tftp::AckPacketStc& ack = std::get<Tftp::AckPacketStc>(parsedAckPacket);
+        if (ack.Opcode != Opcode::Acknowledgment || ack.Block != 0)
+        {
+            return TftpError::UndefinedResponse;
+        }
+
         uint16_t block = 1;
         for (const std::string& data : dividedData)
         {
             std::string dataPacket = CreateDataPacket(block, data);
-            result = Socket->SendTo(dataPacket.c_str(), dataPacket.size(), sentBytes);
-            if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+            result = UdpClient.SendTo(dataPacket.c_str(), dataPacket.size(), sentBytes);
+            if (result != WinsockError::Success)
+            {
+                return TftpError::WinsockError;
+            }
 
-            // Receive acknowledgment packet from server
-            result = Socket->RecvFrom(ackPacket, MAX_PACKET_SIZE);
-            if (result != ErrorEnum::Success) return TftpErrorCodes::WinsockError;
+            result = UdpClient.RecvFrom(ackPacket, MAX_PACKET_SIZE, recvBytes);
+            if (result != WinsockError::Success)
+            {
+                return TftpError::WinsockError;
+            }
 
-            // Parse acknowledgment packet
             parsedAckPacket = ParsePacket(ackPacket);
-            if (std::holds_alternative<Tftp::AckPacketStc>(parsedAckPacket) == false) return TftpErrorCodes::UndefinedResponse;
+            if (std::holds_alternative<Tftp::AckPacketStc>(parsedAckPacket) == false)
+            {
+                return TftpError::UndefinedResponse;
+            }
             Tftp::AckPacketStc& ack = std::get<Tftp::AckPacketStc>(parsedAckPacket);
-            if (ack.Opcode != Opcode::Acknowledgment) return TftpErrorCodes::UndefinedResponse;
-            if (ack.Block == block) block++;
+            if (ack.Block == block)
+            {
+                block++;
+            }
             // Else: If block number is not correct, data packet will be resend in the next iteration
         }
 
-        return TftpErrorCodes::Success;
+        return TftpError::Success;
     }
 
     std::string TftpClientCls::CreateRrqPacket(const std::string& filename, Mode mode)
@@ -332,13 +338,13 @@ namespace Tftp
     {
         return packet.substr(4, packet.size() - 4);
     }
-    TftpErrorCodes TftpClientCls::DetermineErrorCode(const std::string& packet)
+    TftpError TftpClientCls::DetermineErrorCode(const std::string& packet)
     {
-        TftpErrorCodes errorCode = TftpErrorCodes::UnknownErrorCode;
+        TftpError errorCode = TftpError::UnknownErrorCode;
 
-        if (static_cast<uint32_t>(packet[3]) < static_cast<uint32_t>(TftpErrorCodes::UnknownErrorCode))
+        if (static_cast<uint32_t>(packet[3]) < static_cast<uint32_t>(TftpError::UnknownErrorCode))
         {
-            errorCode = static_cast<TftpErrorCodes>(packet[3]);
+            errorCode = static_cast<TftpError>(packet[3]);
         }
 
         return errorCode;
@@ -383,7 +389,7 @@ namespace Tftp
             }
             case Opcode::Error:
             {
-                TftpErrorCodes errorCode = DetermineErrorCode(packet);
+                TftpError errorCode = DetermineErrorCode(packet);
                 std::string errorMessage = DetermineErrorMessage(packet);
                 ErrorPacketStc errorPkg = { opcode, errorCode, errorMessage };
 

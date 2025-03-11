@@ -127,10 +127,11 @@ namespace UtilityLib
                     LastWinsockError = WSAGetLastError();
                     result = WinsockError::CheckLastWinsockError;
                 }
-                else
-                {
-                    WinsockInitializerCls::IncrementInstanceCount();
-                }
+            }
+
+            if (result == WinsockError::Success)
+            {
+                WinsockInitializerCls::IncrementInstanceCount();
             }
 
             return result;
@@ -139,7 +140,7 @@ namespace UtilityLib
         {
             WinsockError result = WinsockError::Success;
 
-            if (WinsockInitializerCls::GetInstanceCount() > 0)
+            if (WinsockInitializerCls::GetInstanceCount() == 1)
             {
                 int iResult = WSACleanup();
                 if (iResult == SOCKET_ERROR)
@@ -147,10 +148,11 @@ namespace UtilityLib
                     LastWinsockError = WSAGetLastError();
                     result = WinsockError::CheckLastWinsockError;
                 }
-                else
-                {
-                    WinsockInitializerCls::DecrementInstanceCount();
-                }
+            }
+
+            if (result == WinsockError::Success)
+            {
+                WinsockInitializerCls::DecrementInstanceCount();
             }
 
             return result;

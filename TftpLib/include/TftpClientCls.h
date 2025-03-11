@@ -1,9 +1,6 @@
 #ifndef TFTPCLIENTCLS_H
 #define TFTPCLIENTCLS_H
 
-#include "TftpTypePkg.h"
-#include "SocketPkg.h"
-#include "FilePkg.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -11,34 +8,38 @@
 #include <optional>
 #include <memory>
 
+#include "TftpTypePkg.h"
+#include "SocketPkg.h"
+#include "FilePkg.h"
+
 namespace Tftp
 {
     class TftpClientCls
     {
     private:
-        std::unique_ptr<UtilityLib::Network::SocketClientCls> Socket;
-        TftpClientCls();
-        TftpClientCls(const std::string& ipAddress);
+        UtilityLib::Network::UdpClientCls UdpClient;
 
     public:
-        static std::optional<TftpClientCls> Initialize(const std::string& ipAddress);
-        bool ChangeIpAddress(const std::string& ipAddress);
+        static std::variant<TftpError, TftpClientCls> Initialize(const std::string& ipAddress);
+        TftpError ChangeIpAddress(const std::string& ipAddress);
 
-        TftpErrorCodes ReadFile(const std::string& filename, const std::string& pathToSaveFile, Mode mode);
-        TftpErrorCodes WriteFile(const std::string& filename, const std::string& pathToFile, Mode mode);
+        TftpError ReadFile(const std::string& filename, const std::string& pathToSaveFile, Mode mode);
+        TftpError WriteFile(const std::string& filename, const std::string& pathToFile, Mode mode);
         int GetLastWinsockError();
 
-        TftpClientCls(TftpClientCls&&) noexcept = default;
-        TftpClientCls& operator=(TftpClientCls&&) noexcept = default;
-        
+        TftpClientCls(TftpClientCls&& other) noexcept;
+        TftpClientCls& operator=(TftpClientCls&& other) noexcept;
+        TftpClientCls(UtilityLib::Network::UdpClientCls&& udpClient) noexcept;
+
         TftpClientCls(const TftpClientCls&) = delete;
-        TftpClientCls& operator=(const TftpClientCls&) = delete;
+        TftpClientCls& operator=(TftpClientCls& other) = delete;
+        TftpClientCls() = delete;
 
     private:
         Opcode DeterminePacketType(const std::string& packet);
         uint16_t DetermineBlock(const std::string& packet);
         std::string DetermineData(const std::string& packet);
-        TftpErrorCodes DetermineErrorCode(const std::string& packet);
+        TftpError DetermineErrorCode(const std::string& packet);
         std::string DetermineErrorMessage(const std::string& packet);
 
         std::string CreateRrqPacket(const std::string& filename, Mode mode);

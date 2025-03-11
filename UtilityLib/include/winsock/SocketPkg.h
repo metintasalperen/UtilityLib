@@ -82,6 +82,7 @@ namespace UtilityLib
 
         public:
             ~SocketCommonCls();
+            int GetLastWinsockError() const;
 
         protected:
             SOCKET GetSocket() const;
@@ -89,7 +90,6 @@ namespace UtilityLib
             addrinfo* GetAddressInfoResults() const;
             std::string GetIpAddress() const;
             std::string GetPort() const;
-            int GetLastWinsockError() const;
             
             WinsockError InitializeWinsock();
             WinsockError CleanupWinsock();
