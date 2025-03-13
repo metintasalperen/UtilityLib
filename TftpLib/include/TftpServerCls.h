@@ -2,7 +2,7 @@
 #define TFTPSERVERCLS_H
 
 #include "TftpTypePkg.h"
-#include "SocketPkg.h"
+#include "UdpServerCls.h"
 #include "FilePkg.h"
 #include <cstdint>
 #include <string>
@@ -15,6 +15,22 @@ namespace Tftp
 {
     class TftpServerCls
     {
+    private:
+        UtilityLib::Socket::UdpServerCls UdpServer;
+        TftpServerCls(UtilityLib::Socket::UdpServerCls&& udpServer) noexcept;
+
+    public:
+        TftpServerCls() = delete;
+        TftpServerCls(const TftpServerCls&) = delete;
+        TftpServerCls& operator=(TftpServerCls& other) = delete;
+
+        TftpServerCls(TftpServerCls&& other) noexcept;
+        TftpServerCls& operator=(TftpServerCls&& other) noexcept;
+
+        static std::variant<TftpError, TftpServerCls> Initialize(const std::string& ipAddress);
+        TftpError ChangeIpAddress(const std::string& ipAddress);
+
+
     };
 }
 

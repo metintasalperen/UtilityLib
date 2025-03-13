@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "TftpTypePkg.h"
-#include "SocketPkg.h"
+#include "UdpClientCls.h"
 #include "FilePkg.h"
 
 namespace Tftp
@@ -17,7 +17,8 @@ namespace Tftp
     class TftpClientCls
     {
     private:
-        UtilityLib::Network::UdpClientCls UdpClient;
+        UtilityLib::Socket::UdpClientCls UdpClient;
+        TftpClientCls(UtilityLib::Socket::UdpClientCls&& udpClient) noexcept;
 
     public:
         static std::variant<TftpError, TftpClientCls> Initialize(const std::string& ipAddress);
@@ -29,7 +30,6 @@ namespace Tftp
 
         TftpClientCls(TftpClientCls&& other) noexcept;
         TftpClientCls& operator=(TftpClientCls&& other) noexcept;
-        TftpClientCls(UtilityLib::Network::UdpClientCls&& udpClient) noexcept;
 
         TftpClientCls(const TftpClientCls&) = delete;
         TftpClientCls& operator=(TftpClientCls& other) = delete;

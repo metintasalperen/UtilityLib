@@ -315,19 +315,24 @@ namespace UtilityLib
         // 
         // Arguments:
         // const std::string& str  --- In
-        // size_t offset           --- In
-        // size_t count            --- In
         // T& value                --- Out (T must be integral type)
-        // int32_t base           --- In
+        // size_t offset           --- In (when no offset is provided, check will start at the start of string)
+        // size_t count            --- In (when no count is provided, check will continue until the end of string)
+        // int32_t base            --- In (default is 10)
         // 
         // Returns:
         // UtilityLib::Error::ErrorEnum
         template<std::integral T>
-        StringError StringToIntegral(const std::string& str, size_t offset, size_t count, T& value, int32_t base = 10)
+        StringError StringToIntegral(const std::string& str, T& value, size_t offset = 0, size_t count = 0, int32_t base = 10)
         {
             if (offset + count > str.size())
             {
                 return StringError::InvalidArgument;
+            }
+
+            if (count == 0)
+            {
+                count = str.size() - offset;
             }
 
             StringError result = StringError::Success;
@@ -348,17 +353,6 @@ namespace UtilityLib
 
             return result;
         }
-        // ValidateIpAddress()
-        // 
-        // Summary:
-        // Validates the provided string is a valid IP address
-        // 
-        // Arguments:
-        // const std::string& ipAddress  --- In
-        // 
-        // Returns:
-        // bool
-        bool ValidateIpAddress(const std::string& ipAddress);
         // IsIntegral()
         // 
         // Summary:
@@ -370,6 +364,28 @@ namespace UtilityLib
         // Returns:
         // bool
         bool IsIntegral(const std::string& str);
+        // ValidateIpAddress()
+        // 
+        // Summary:
+        // Validates the provided string is a valid IP address
+        // 
+        // Arguments:
+        // const std::string& ipAddress  --- In
+        // 
+        // Returns:
+        // bool
+        bool ValidateIpAddress(const std::string& ipAddress);
+        // ValidatePort()
+        // 
+        // Summary:
+        // Checks if provided string is a valid port number
+        // 
+        // Arguments:
+        // const std::string& port  --- In
+        // 
+        // Returns:
+        // bool
+        bool ValidatePort(const std::string& port);
     };
 };
 

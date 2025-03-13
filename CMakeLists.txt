@@ -5,11 +5,11 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("UtilityLib")
 
-# This sets all projects to C++20
-# I prefer to set standard per project..
-#set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include sub-projects.
-add_subdirectory ("UtilityLib")
+add_subdirectory ("StringLib")
+add_subdirectory ("FileLib")
+add_subdirectory ("SocketLib")
 add_subdirectory ("TftpLib")

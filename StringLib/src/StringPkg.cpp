@@ -449,6 +449,17 @@ namespace UtilityLib
 
             return out;
         }
+        bool IsIntegral(const std::string& str)
+        {
+            uint64_t val = 0;
+            StringError result = StringToIntegral<uint64_t>(str, val);
+
+            if (result == StringError::Success)
+            {
+                return true;
+            }
+            return false;
+        }
         bool ValidateIpAddress(const std::string& ipAddress)
         {
             std::vector<std::string> ipParts = Divide(ipAddress, '.');
@@ -460,7 +471,7 @@ namespace UtilityLib
             for (const auto& part : ipParts)
             {
                 uint32_t ipPart = 0;
-                StringError result = StringToIntegral<uint32_t>(part, static_cast<size_t>(0), part.size(), ipPart);
+                StringError result = StringToIntegral<uint32_t>(part, ipPart);
 
                 if (result != StringError::Success) return false;
                 if (ipPart > 255) return false;
@@ -468,16 +479,22 @@ namespace UtilityLib
 
             return true;
         }
-        bool IsIntegral(const std::string& str)
+        bool ValidatePort(const std::string& port)
         {
-            uint64_t val = 0;
-            StringError result = StringToIntegral<uint64_t>(str, 0, str.size(), val);
+            constexpr uint32_t MAX_PORT = 0xFFFF;
+            uint32_t portNum = 0;
+            StringError result = StringToIntegral<uint32_t>(port, portNum);
 
-            if (result == StringError::Success)
+            if (result != StringError::Success)
             {
-                return true;
+                return false;
             }
-            return false;
+            if (portNum > MAX_PORT)
+            {
+                return false;
+            }
+
+            return true;
         }
     };
 };

@@ -1,6 +1,6 @@
 #include "TftpClientCls.h"
 
-using namespace UtilityLib::Network;
+using namespace UtilityLib::Socket;
 
 namespace Tftp
 {
