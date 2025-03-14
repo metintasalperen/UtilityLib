@@ -9,8 +9,6 @@ Provides following utilities:
 4. Tftp Client and Server implementations
 And Hopefully more things to add as I find new ideas...
 
-- All of the following utilities above uses the Error enumerations provided by this library itself "ErrorPkg.h/.cpp" , "UtilityLib::Error"
-
 - Currently I directly use Visual Studio makefiles (.sln .vcxproj) because I don't like to write CMake. Writing that is awful but eventually I will move to CMake so that someone can select which utilites to use which utilities not to use etc. This is necessary since Winsock2 is Windows only or someone might not want some of the utilities the library provides or someone might hate Visual Studio (which I don't get at all, it is pretty good imo but whatever)
 Well, I did it, I changed to CMake yey
 
