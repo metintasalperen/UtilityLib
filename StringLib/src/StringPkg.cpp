@@ -496,5 +496,16 @@ namespace UtilityLib
 
             return true;
         }
+        std::string UtilityLib::String::Reverse(const std::string& str)
+        {
+            std::string reverse;
+
+            for (int32_t i = static_cast<int32_t>(str.size() - 1); i >= 0; i--)
+            {
+                reverse += str[i];
+            }
+
+            return reverse;
+        }
     };
 };

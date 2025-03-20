@@ -364,6 +364,31 @@ namespace UtilityLib
         // Returns:
         // bool
         bool IsIntegral(const std::string& str);
+        // IntegralToString()
+        // 
+        // Summary:
+        // Transforms integral type to std::string
+        // 
+        // Arguments:
+        // T val  --- In (T must be integral type)
+        // 
+        // Returns:
+        // std::string
+        template<std::integral T>
+        std::string IntegralToString(T val)
+        {
+            std::string result;
+
+            while (val > 0)
+            {
+                T remainder = val % 10;
+                char digitAsChar = static_cast<char>(remainder + '0');
+                result.insert(result.begin(), digitAsChar);
+                val /= 10;
+            }
+
+            return result;
+        }
         // ValidateIpAddress()
         // 
         // Summary:
@@ -386,6 +411,17 @@ namespace UtilityLib
         // Returns:
         // bool
         bool ValidatePort(const std::string& port);
+        // Reverse()
+        // 
+        // Summary:
+        // Reverses the string
+        // 
+        // Arguments:
+        // const std::string& str  --- In
+        // 
+        // Returns:
+        // std::string
+        std::string Reverse(const std::string& str);
     };
 };
 
