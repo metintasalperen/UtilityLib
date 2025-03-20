@@ -4,11 +4,31 @@ namespace UtilityLib
 {
     namespace FileIO
     {
+        std::string UtilityLib::FileIO::CreateFullPath(const std::string& filename, const std::string& directoryPath)
+        {
+            std::string fullPath = directoryPath;
+
+            if (UtilityLib::String::IsEndWith(fullPath, "\\") == false)
+            {
+                fullPath += "\\";
+            }
+
+            fullPath += filename;
+
+            return fullPath;
+        }
+
         bool IsFileExist(const std::string& filePath)
         {
             std::ifstream file(filePath);
             return file.good();
         }
+
+        bool IsFileExist(const std::string& filename, const std::string& directoryPath)
+        {
+            return IsFileExist(CreateFullPath(filename, directoryPath));
+        }
+        
         std::string ReadFromFile(const std::string& filePath)
         {
             // Open at the end to get file size
@@ -33,11 +53,12 @@ namespace UtilityLib
 
             return fileContent;
         }
-        bool WriteToFile(const std::string& filePath, const std::string& content)
+        
+        bool WriteToTextFile(const std::string& filePath, const std::string& content)
         {
             bool result = false;
 
-            std::ofstream file(filePath);
+            std::ofstream file(filePath, static_cast<int>(FileMode::WriteText));
             if (file.is_open())
             {
                 file << content;
@@ -46,6 +67,62 @@ namespace UtilityLib
             }
 
             return result;
+        }
+
+        bool WriteToBinaryFile(const std::string& filePath, const std::string& content)
+        {
+            bool result = false;
+
+            std::ofstream file(filePath, static_cast<int>(FileMode::WriteBinary));
+            if (file.is_open())
+            {
+                file << content;
+                file.close();
+                result = true;
+            }
+
+            return result;
+        }
+
+        bool AppendToTextFile(const std::string& filePath, const std::string& content)
+        {
+            bool result = false;
+            std::ofstream file(filePath, static_cast<int>(FileMode::WriteTextAppend));
+            if (file.is_open())
+            {
+                file << content;
+                file.close();
+                result = true;
+            }
+            return result;
+        }
+
+        bool AppendToBinaryFile(const std::string& filePath, const std::string& content)
+        {
+            bool result = false;
+            std::ofstream file(filePath, static_cast<int>(FileMode::WriteBinaryAppend));
+            if (file.is_open())
+            {
+                file << content;
+                file.close();
+                result = true;
+            }
+            return result;
+        }
+
+        std::ofstream OpenFile(const std::string& filePath, FileMode mode)
+        {
+            return std::ofstream(filePath, static_cast<int>(mode));
+        }
+
+        bool WriteToFile(std::ofstream& fileStream, const std::string& content)
+        {
+            if (fileStream.is_open())
+            {
+                fileStream << content;
+                return true;
+            }
+            return false;
         }
     };
 };

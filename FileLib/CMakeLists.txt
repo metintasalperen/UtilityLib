@@ -3,14 +3,18 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-add_library(FileLib STATIC
+project(FileLib)
+
+add_library(${PROJECT_NAME} STATIC
     src/FilePkg.cpp)
 
-target_include_directories(FileLib PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/StringLib/include
+)
 
-set_target_properties(FileLib PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/StringLib/StringLib.lib
+)
 
 # TODO: Add tests and install targets if needed.

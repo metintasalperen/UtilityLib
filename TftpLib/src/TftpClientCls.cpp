@@ -129,7 +129,7 @@ namespace Tftp
         fileContent = UtilityLib::String::ReplaceAll(fileContent, "\r\n", "\n");
 
         // Save file to disk
-        bool isFileWritten = UtilityLib::FileIO::WriteToFile(pathToSaveFile, fileContent);
+        bool isFileWritten = UtilityLib::FileIO::WriteToTextFile(pathToSaveFile, fileContent);
         if (isFileWritten)
         {
             return TftpError::Success;
