@@ -5,72 +5,193 @@ namespace UtilityLib
     namespace Socket
     {
         UdpServerCls::UdpServerCls() :
-            UdpCommonCls()
+            Sock(INVALID_SOCKET),
+            LastWinsockError(0)
         {
-        }
-        UdpServerCls::UdpServerCls(UdpCommonCls&& other) noexcept :
-            UdpCommonCls(std::move(other))
-        {
-        }
-        UdpServerCls& UdpServerCls::operator=(UdpCommonCls&& other) noexcept
-        {
-            UdpCommonCls::operator=(std::move(other));
-            return *this;
+            memset(Buffer, 0, sizeof(Buffer));
         }
         UdpServerCls::UdpServerCls(UdpServerCls&& other) noexcept :
-            UdpCommonCls(std::move(other))
+            Sock(other.Sock),
+            LastWinsockError(other.LastWinsockError),
+            Port(std::move(other.Port))
         {
+            memcpy(Buffer, other.Buffer, sizeof(Buffer));
+
+            other.Sock = INVALID_SOCKET;
         }
         UdpServerCls& UdpServerCls::operator=(UdpServerCls&& other) noexcept
         {
-            UdpCommonCls::operator=(std::move(other));
+            if (this != &other)
+            {
+                Sock = other.Sock;
+                LastWinsockError = other.LastWinsockError;
+                Port = std::move(other.Port);
+                memcpy(Buffer, other.Buffer, sizeof(Buffer));
+
+                other.Sock = INVALID_SOCKET;
+            }
             return *this;
         }
-
-        std::variant<WinsockError, UdpServerCls> UdpServerCls::Initialize(
-            const addrinfo& hints,
-            const std::string& ipAddress,
-            const std::string& port,
-            BlockingMode blockingMode)
+        UdpServerCls::~UdpServerCls()
         {
-            auto initResult = UdpCommonCls::Initialize(hints, ipAddress, port, blockingMode);
+            CloseSocket();
+        }
 
-            if (std::holds_alternative<WinsockError>(initResult))
+        bool UdpServerCls::SetPort(const std::string& port)
+        {
+            if (UtilityLib::String::ValidatePort(port))
             {
-                return std::get<WinsockError>(initResult);
+                Port = port;
+                return true;
+            }
+            return false;
+        }
+        int UdpServerCls::GetLastWinsockError()
+        {
+            return LastWinsockError;
+        }
+
+        WinsockError UdpServerCls::CreateSocket()
+        {
+            Sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (Sock == INVALID_SOCKET)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            return WinsockError::Success;
+        }
+        WinsockError UdpServerCls::CloseSocket()
+        {
+            if (Sock != INVALID_SOCKET)
+            {
+                int iResult = closesocket(Sock);
+                if (iResult == SOCKET_ERROR)
+                {
+                    LastWinsockError = WSAGetLastError();
+                    return WinsockError::CheckLastWinsockError;
+                }
+                else
+                {
+                    Sock = INVALID_SOCKET;
+                    return WinsockError::Success;
+                }
             }
 
-            UdpServerCls udpServer(std::move(std::get<UdpCommonCls>(initResult)));
+            return WinsockError::Success;
+        }
+        WinsockError UdpServerCls::SetBlockingMode(BlockingMode mode)
+        {
+            u_long blockingMode = static_cast<u_long>(mode);
 
-            WinsockError result = udpServer.Bind();
+            int iResult = ioctlsocket(Sock, FIONBIO, &blockingMode);
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            return WinsockError::Success;
+        }
+        WinsockError UdpServerCls::Bind()
+        {
+            if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
 
+            struct sockaddr_in addr = CreateSockaddrIn(Port);
+
+            int iResult = bind(Sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+            return WinsockError::Success;
+        }
+
+        std::variant<WinsockError, UdpServerCls> UdpServerCls::Initialize(const std::string& port, BlockingMode mode)
+        {
+            UdpServerCls udp;
+            if (udp.SetPort(port) == false)
+            {
+                return WinsockError::InvalidPort;
+            }
+
+            WinsockError result = udp.CreateSocket();
             if (result != WinsockError::Success)
             {
                 return result;
             }
 
-            return udpServer;
+            result = udp.SetBlockingMode(mode);
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            result = udp.Bind();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            return udp;
         }
-
-        WinsockError UdpServerCls::Bind()
+        
+        WinsockError UdpServerCls::RecvFrom(std::string& buffer, size_t bufferLen, size_t& recvByteCount, std::string& fromIpAddr, std::string& fromPort)
         {
-            if (AddressInfoResults == nullptr ||
-                Sock == INVALID_SOCKET)
+            if (bufferLen > INT_MAX) return WinsockError::BufferTooLong;
+            if (bufferLen == 0) return WinsockError::BufferLengthIsZero;
+            if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
+
+            char* bufPtr = Buffer;
+            if (bufferLen > 2048)
             {
-                return WinsockError::NotInitialized;
+                bufPtr = new (std::nothrow) char[bufferLen];
+                if (bufPtr == nullptr) return WinsockError::OutOfMemory;
             }
 
-            for (const addrinfo* ptr = AddressInfoResults; ptr != nullptr; ptr = ptr->ai_next)
+            int bufLen = static_cast<int>(bufferLen);
+            sockaddr addr{ 0 };
+            int addrLen = sizeof(addr);
+
+            int iResult = recvfrom(Sock, bufPtr, bufLen, 0, &addr, &addrLen);
+            if (iResult == SOCKET_ERROR)
             {
-                int iResult = bind(Sock, ptr->ai_addr, static_cast<int>(ptr->ai_addrlen));
-                if (iResult != SOCKET_ERROR)
-                {
-                    return WinsockError::Success;
-                }
+                if (bufferLen > 2048) delete[] bufPtr;
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
             }
 
-            LastWinsockError = WSAGetLastError();
-            return WinsockError::CheckLastWinsockError;
+            recvByteCount = static_cast<size_t>(iResult);
+            buffer.assign(bufPtr, recvByteCount);
+            if (bufferLen > 2048) delete[] bufPtr;
+
+            sockaddr_in* ptr = reinterpret_cast<sockaddr_in*>(&addr);
+            fromIpAddr = SockaddrInToIpAddress(ptr);
+            fromPort = UtilityLib::String::IntegralToString<USHORT>(ntohs(ptr->sin_port));
+
+            return WinsockError::Success;
+        }
+        WinsockError UdpServerCls::SendTo(const std::string& buffer, size_t bufferLen, size_t& sentByteCount, const std::string& toIpAddr, const std::string& toPort)
+        {
+            if (bufferLen > INT_MAX) return WinsockError::BufferTooLong;
+            if (bufferLen == 0) return WinsockError::BufferLengthIsZero;
+            if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
+
+            const char* bufPtr = buffer.c_str();
+            int bufLen = static_cast<int>(bufferLen);
+            sockaddr_in addr = CreateSockaddrIn(toPort, toIpAddr);
+            sockaddr* addrPtr = reinterpret_cast<sockaddr*>(&addr);
+            int addrLen = sizeof(*addrPtr);
+
+            int iResult = sendto(Sock, bufPtr, bufLen, 0, addrPtr, addrLen);
+            if (iResult == SOCKET_ERROR)
+            {
+                LastWinsockError = WSAGetLastError();
+                return WinsockError::CheckLastWinsockError;
+            }
+
+            sentByteCount = static_cast<size_t>(iResult);
+            return WinsockError::Success;
         }
     }
 }

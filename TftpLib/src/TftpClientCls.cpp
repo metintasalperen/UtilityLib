@@ -11,7 +11,7 @@ namespace Tftp
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
 
-        auto initUdp = UdpClientCls::Initialize(hints, ipAddress, TFTP_PORT);
+        auto initUdp = UdpClientCls::Initialize(ipAddress, TFTP_PORT);
 
         if (std::holds_alternative<WinsockError>(initUdp) == true)
         {
@@ -47,7 +47,7 @@ namespace Tftp
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
 
-        auto initUdp = UdpClientCls::Initialize(hints, ipAddress, TFTP_PORT);
+        auto initUdp = UdpClientCls::Initialize(ipAddress, TFTP_PORT);
 
         if (std::holds_alternative<WinsockError>(initUdp) == true)
         {

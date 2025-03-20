@@ -6,15 +6,12 @@ cmake_minimum_required (VERSION 3.8)
 project(SocketLib)
 
 add_library(SocketLib STATIC
-    "src/WinsockInitializerCls.cpp"
-    "src/SocketTypePkg.cpp" 
-    "src/SocketCommonCls.cpp"
-    "src/UdpCommonCls.cpp"
+    "src/UdpClientCls.cpp"
     "src/UdpServerCls.cpp"
-    "src/TcpCommonCls.cpp"
     "src/TcpClientCls.cpp"
     "src/TcpServerCls.cpp"
-    "src/TcpSessionCls.cpp")
+    "src/TcpSessionCls.cpp"
+)
 
 target_include_directories(SocketLib PRIVATE
     ${CMAKE_SOURCE_DIR}/StringLib/include
