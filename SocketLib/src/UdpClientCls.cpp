@@ -63,7 +63,7 @@ namespace UtilityLib
 
         WinsockError UdpClientCls::CreateSocket()
         {
-            Sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            Sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
             if (Sock == INVALID_SOCKET)
             {
                 LastWinsockError = WSAGetLastError();
