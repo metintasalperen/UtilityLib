@@ -92,7 +92,7 @@ namespace UtilityLib
         {
             if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
 
-            sockaddr_in addr = CreateSockaddrIn(Port);
+            sockaddr_in addr = StringToSockaddrIn(Port);
             int iResult = bind(Sock, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
 
             if (iResult == SOCKET_ERROR)
@@ -129,7 +129,7 @@ namespace UtilityLib
             }
 
             sockaddr_in* addrIn = reinterpret_cast<sockaddr_in*>(&addr);
-            std::string clientIpAddr = SockaddrInToIpAddress(addrIn);
+            std::string clientIpAddr = SockaddrInToString(addrIn);
             std::string clientPort = UtilityLib::String::IntegralToString<USHORT>(ntohs(addrIn->sin_port));
 
             TcpSessionCls tcpSession(sock, clientIpAddr, clientPort);

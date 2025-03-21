@@ -40,7 +40,8 @@ namespace Tftp
     {
         NetAscii = 0,
         Octet = 1,
-        Mail = 2
+        Mail = 2,
+        Invalid
     };
 
     struct DataPacketStc
@@ -61,6 +62,13 @@ namespace Tftp
         Opcode Opcode;
         TftpError ErrorCode;
         std::string ErrorMessage;
+    };
+
+    struct RrqWrqPacketStc
+    {
+        Opcode Opcode;
+        std::string Filename;
+        Mode Mode;
     };
 
 

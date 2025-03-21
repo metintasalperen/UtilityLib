@@ -53,7 +53,7 @@ namespace UtilityLib
 
         WinsockError UdpServerCls::CreateSocket()
         {
-            Sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            Sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
             if (Sock == INVALID_SOCKET)
             {
                 LastWinsockError = WSAGetLastError();
@@ -96,7 +96,7 @@ namespace UtilityLib
         {
             if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
 
-            struct sockaddr_in addr = CreateSockaddrIn(Port);
+            struct sockaddr_in addr = StringToSockaddrIn(Port);
 
             int iResult = bind(Sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
             if (iResult == SOCKET_ERROR)
@@ -166,7 +166,7 @@ namespace UtilityLib
             if (bufferLen > 2048) delete[] bufPtr;
 
             sockaddr_in* ptr = reinterpret_cast<sockaddr_in*>(&addr);
-            fromIpAddr = SockaddrInToIpAddress(ptr);
+            fromIpAddr = SockaddrInToString(ptr);
             fromPort = UtilityLib::String::IntegralToString<USHORT>(ntohs(ptr->sin_port));
 
             return WinsockError::Success;
@@ -179,7 +179,7 @@ namespace UtilityLib
 
             const char* bufPtr = buffer.c_str();
             int bufLen = static_cast<int>(bufferLen);
-            sockaddr_in addr = CreateSockaddrIn(toPort, toIpAddr);
+            sockaddr_in addr = StringToSockaddrIn(toPort, toIpAddr);
             sockaddr* addrPtr = reinterpret_cast<sockaddr*>(&addr);
             int addrLen = sizeof(*addrPtr);
 

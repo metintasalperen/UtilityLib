@@ -52,7 +52,7 @@ namespace UtilityLib
         // Internal function, do not use this directly unless you really want to
         // Inputs are assumed as valid port and ip address
         // Do not pass invalid port or ip address if you really really want to use this
-        inline sockaddr_in CreateSockaddrIn(const std::string& port, const std::string& ipAddress = "")
+        inline sockaddr_in StringToSockaddrIn(const std::string& port, const std::string& ipAddress = "")
         {
             sockaddr_in addr{ 0 };
 
@@ -79,7 +79,7 @@ namespace UtilityLib
         }
 
         // Internal function, do not use this directly unless you really want to
-        inline std::string SockaddrInToIpAddress(sockaddr_in* ptr)
+        inline std::string SockaddrInToString(sockaddr_in* ptr)
         {
             std::vector<std::string> ipBlocks;
             ipBlocks.push_back(UtilityLib::String::IntegralToString<UCHAR>(ptr->sin_addr.S_un.S_un_b.s_b1));

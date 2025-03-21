@@ -190,7 +190,7 @@ namespace UtilityLib
             buffer.assign(bufPtr, recvByteCount);
             if (bufferLen > 2048) delete[] bufPtr;
 
-            fromIpAddr = SockaddrInToIpAddress(reinterpret_cast<sockaddr_in*>(&addr));
+            fromIpAddr = SockaddrInToString(reinterpret_cast<sockaddr_in*>(&addr));
             fromPort = UtilityLib::String::IntegralToString(ntohs(reinterpret_cast<sockaddr_in*>(&addr)->sin_port));
 
             return WinsockError::Success;
@@ -203,7 +203,7 @@ namespace UtilityLib
 
             const char* bufPtr = buffer.c_str();
             int bufLen = static_cast<int>(bufferLen);
-            sockaddr_in addr = CreateSockaddrIn(Port, IpAddress);
+            sockaddr_in addr = StringToSockaddrIn(Port, IpAddress);
             sockaddr* addrPtr = reinterpret_cast<sockaddr*>(&addr);
             int addrLen = sizeof(*addrPtr);
 
