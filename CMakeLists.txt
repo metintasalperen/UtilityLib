@@ -13,15 +13,16 @@ add_subdirectory ("FileLib")
 add_subdirectory ("StringLib")
 add_subdirectory ("SocketLib")
 add_subdirectory ("TftpLib")
+add_subdirectory ("BitManipulationLib")
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/out/UtilityLib/${CMAKE_BUILD_TYPE}")
 
 install(
-	TARGETS FileLib StringLib SocketLib TftpLib
+	TARGETS FileLib StringLib SocketLib TftpLib BitManipulationLib
 	DESTINATION lib
 )
 
 install(
-	DIRECTORY FileLib/include StringLib/include SocketLib/include TftpLib/include
+	DIRECTORY FileLib/include StringLib/include SocketLib/include TftpLib/include BitManipulationLib/include
 	DESTINATION "./"
 )

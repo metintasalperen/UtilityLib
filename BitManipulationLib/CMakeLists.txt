@@ -1,14 +1,14 @@
-﻿# CMakeList.txt : CMake project for StringLib, include source and define
+# CMakeList.txt : CMake project for BitManipulationLib, include source and define
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.8)
 
-project(StringLib)
+project(BitManipulationLib)
 
 add_library(${PROJECT_NAME} STATIC
-    src/StringPkg.cpp)
+    src/BitManipulationPkg.cpp)
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

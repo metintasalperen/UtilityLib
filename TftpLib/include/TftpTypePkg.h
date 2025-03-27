@@ -1,5 +1,5 @@
-#ifndef TFTPCLIENTTYPEPKG_H
-#define TFTPCLIENTTYPEPKG_H
+#ifndef TFTPYPEPKG_H
+#define TFTPYPEPKG_H
 
 #include <map>
 #include <string>
