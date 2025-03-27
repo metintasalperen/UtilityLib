@@ -14,6 +14,7 @@ add_subdirectory ("StringLib")
 add_subdirectory ("SocketLib")
 add_subdirectory ("TftpLib")
 add_subdirectory ("BitManipulationLib")
+add_subdirectory ("AlgorithmLib")
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/out/UtilityLib/${CMAKE_BUILD_TYPE}")
 
