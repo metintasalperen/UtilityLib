@@ -507,5 +507,10 @@ namespace UtilityLib
 
             return reverse;
         }
+        std::string ReplaceTabsWithSpaces(const std::string& str, uint32_t spaceCount)
+        {
+            std::string spaceString(spaceCount, ' ');
+            return ReplaceAll(str, "\t", spaceString);
+        }
     };
 };

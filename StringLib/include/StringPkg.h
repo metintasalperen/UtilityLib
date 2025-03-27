@@ -422,6 +422,18 @@ namespace UtilityLib
         // Returns:
         // std::string
         std::string Reverse(const std::string& str);
+        // ReplaceTabsWithSpaces()
+        // 
+        // Summary:
+        // Replaces \t with spaceCount number of spaces
+        // 
+        // Arguments:
+        // const std::string& str  --- In
+        // uint32_t spaceCount     --- In (default = 4)
+        // 
+        // Returns:
+        // std::string
+        std::string ReplaceTabsWithSpaces(const std::string& str, uint32_t spaceCount = 4);
     };
 };
 
