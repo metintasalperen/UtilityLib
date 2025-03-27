@@ -13,9 +13,6 @@ namespace UtilityLib
     {
         class TcpServerCls
         {
-            // Will not comment private attributes and methods because they are for internal use
-            // Just go use public methods, you don't need to know these
-            // Thx XOXO
         private:
             SOCKET Sock;
             std::string Port;

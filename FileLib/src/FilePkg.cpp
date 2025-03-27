@@ -32,7 +32,7 @@ namespace UtilityLib
         std::string ReadFromFile(const std::string& filePath)
         {
             // Open at the end to get file size
-            std::ifstream file(filePath, std::ios::ate);
+            std::ifstream file(filePath, static_cast<int>(FileMode::ReadBinaryAtTheEnd));
 
             // File not opened, return empty string
             if (!file)

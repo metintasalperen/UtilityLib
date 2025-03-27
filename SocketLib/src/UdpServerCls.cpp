@@ -36,6 +36,44 @@ namespace UtilityLib
         {
             CloseSocket();
         }
+        int UdpServerCls::GetLastWinsockError()
+        {
+            return LastWinsockError;
+        }
+
+        std::variant<WinsockError, UdpServerCls> UdpServerCls::Initialize(const std::string& port, BlockingMode blockingMode, const std::string& ipAddress)
+        {
+            if (ipAddress != "" && UtilityLib::String::ValidateIpAddress(ipAddress) == false)
+            {
+                return WinsockError::InvalidIpAddress;
+            }
+
+            UdpServerCls udp;
+            if (udp.SetPort(port) == false)
+            {
+                return WinsockError::InvalidPort;
+            }
+
+            WinsockError result = udp.CreateSocket();
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            result = udp.SetBlockingMode(blockingMode);
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            result = udp.Bind(ipAddress);
+            if (result != WinsockError::Success)
+            {
+                return result;
+            }
+
+            return udp;
+        }
 
         bool UdpServerCls::SetPort(const std::string& port)
         {
@@ -45,10 +83,6 @@ namespace UtilityLib
                 return true;
             }
             return false;
-        }
-        int UdpServerCls::GetLastWinsockError()
-        {
-            return LastWinsockError;
         }
 
         WinsockError UdpServerCls::CreateSocket()
@@ -92,50 +126,22 @@ namespace UtilityLib
             }
             return WinsockError::Success;
         }
-        WinsockError UdpServerCls::Bind()
+        WinsockError UdpServerCls::Bind(const std::string& ipAddress)
         {
             if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;
 
-            struct sockaddr_in addr = StringToSockaddrIn(Port);
+            struct sockaddr_in addr = StringToSockaddrIn(Port, ipAddress);
 
             int iResult = bind(Sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
-            if (iResult == SOCKET_ERROR)
+            if (iResult != SOCKET_ERROR)
             {
-                LastWinsockError = WSAGetLastError();
-                return WinsockError::CheckLastWinsockError;
+                return WinsockError::Success;
             }
-            return WinsockError::Success;
+
+            LastWinsockError = WSAGetLastError();
+            return WinsockError::CheckLastWinsockError;
         }
 
-        std::variant<WinsockError, UdpServerCls> UdpServerCls::Initialize(const std::string& port, BlockingMode mode)
-        {
-            UdpServerCls udp;
-            if (udp.SetPort(port) == false)
-            {
-                return WinsockError::InvalidPort;
-            }
-
-            WinsockError result = udp.CreateSocket();
-            if (result != WinsockError::Success)
-            {
-                return result;
-            }
-
-            result = udp.SetBlockingMode(mode);
-            if (result != WinsockError::Success)
-            {
-                return result;
-            }
-
-            result = udp.Bind();
-            if (result != WinsockError::Success)
-            {
-                return result;
-            }
-
-            return udp;
-        }
-        
         WinsockError UdpServerCls::RecvFrom(std::string& buffer, size_t bufferLen, size_t& recvByteCount, std::string& fromIpAddr, std::string& fromPort)
         {
             if (bufferLen > INT_MAX) return WinsockError::BufferTooLong;
@@ -150,6 +156,7 @@ namespace UtilityLib
             }
 
             int bufLen = static_cast<int>(bufferLen);
+
             sockaddr addr{ 0 };
             int addrLen = sizeof(addr);
 
@@ -167,12 +174,14 @@ namespace UtilityLib
 
             sockaddr_in* ptr = reinterpret_cast<sockaddr_in*>(&addr);
             fromIpAddr = SockaddrInToString(ptr);
-            fromPort = UtilityLib::String::IntegralToString<USHORT>(ntohs(ptr->sin_port));
+            fromPort = String::IntegralToString<USHORT>(ntohs(ptr->sin_port));
 
             return WinsockError::Success;
         }
         WinsockError UdpServerCls::SendTo(const std::string& buffer, size_t bufferLen, size_t& sentByteCount, const std::string& toIpAddr, const std::string& toPort)
         {
+            sentByteCount = 0;
+
             if (bufferLen > INT_MAX) return WinsockError::BufferTooLong;
             if (bufferLen == 0) return WinsockError::BufferLengthIsZero;
             if (Sock == INVALID_SOCKET) return WinsockError::NotInitialized;

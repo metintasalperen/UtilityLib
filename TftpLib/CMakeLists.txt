@@ -7,7 +7,8 @@ project(TftpLib)
 
 add_library(TftpLib STATIC
     src/TftpClientCls.cpp
-    src/TftpServerCls.cpp)
+    src/TftpServerCls.cpp
+    src/TftpPacketPkg.cpp)
 
 target_include_directories(TftpLib PRIVATE
     ${CMAKE_SOURCE_DIR}/FileLib/include

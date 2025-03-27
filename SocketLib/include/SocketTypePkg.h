@@ -49,9 +49,9 @@ namespace UtilityLib
             return hints;
         }
 
-        // Internal function, do not use this directly unless you really want to
+        // Internal function, do not use this directly unless you really need to
         // Inputs are assumed as valid port and ip address
-        // Do not pass invalid port or ip address if you really really want to use this
+        // Do not pass invalid port or ip address, result will be unpredictable
         inline sockaddr_in StringToSockaddrIn(const std::string& port, const std::string& ipAddress = "")
         {
             sockaddr_in addr{ 0 };
@@ -78,7 +78,7 @@ namespace UtilityLib
             return addr;
         }
 
-        // Internal function, do not use this directly unless you really want to
+        // Internal function, do not use this directly unless you really need to
         inline std::string SockaddrInToString(sockaddr_in* ptr)
         {
             std::vector<std::string> ipBlocks;

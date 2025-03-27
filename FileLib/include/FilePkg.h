@@ -18,7 +18,8 @@ namespace UtilityLib
             WriteTextAppend = std::ios::out | std::ios::app,
             ReadText = std::ios::in,
             ReadTextAtTheEnd = std::ios::in | std::ios::ate,
-            ReadBinary = std::ios::in | std::ios::binary
+            ReadBinary = std::ios::in | std::ios::binary,
+            ReadBinaryAtTheEnd = std::ios::in | std::ios::binary | std::ios::ate
         };
 
         // CreateFullPath()
